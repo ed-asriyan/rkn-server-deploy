@@ -1,0 +1,49 @@
+daemon off;
+worker_processes auto;
+
+pid {{ metrics_exporter_pid_path }};
+
+events {
+    worker_connections 4096;
+}
+
+http {
+    access_log {{ metrics_exporter_access_log_path }};
+    error_log {{ metrics_exporter_error_log_path }};
+
+    server {
+        listen *:80;
+        listen [::]:80;
+        server_name _;
+        return 301 https://{{ metrics_exporter_server.fallback_proxy_target }};
+    }
+
+{% if metrics_exporter_server.prometheus_metrics is mapping %}
+    server {
+        listen *:{{ metrics_exporter_server.prometheus_metrics.port }} ssl http2;
+        listen [::]:{{ metrics_exporter_server.prometheus_metrics.port }} ssl http2;
+
+        ssl_certificate {{ metrics_exporter_certificate_path }};
+        ssl_certificate_key {{ metrics_exporter_key_path }};
+        ssl_protocols TLSv1.2 TLSv1.3;
+
+        location {{ metrics_exporter_server.prometheus_metrics.xray.url_path }} {
+            proxy_pass http://127.0.0.1:{{ metrics_exporter_xray_metrics_port }}/metrics;
+        }
+
+        location {{ metrics_exporter_server.prometheus_metrics.node_exporter.url_path }} {
+            proxy_pass http://127.0.0.1:{{ metrics_exporter_node_exporter_metrics_port }}/metrics;
+        }
+
+        location / {
+            return 444;
+        }
+
+        error_page 404 = @redirect;
+
+        location @redirect {
+            return 444;
+        }
+    }
+{% endif %}
+}

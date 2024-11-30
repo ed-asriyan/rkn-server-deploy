@@ -19,37 +19,26 @@
             if (!parseHash.value) {
                 parseHash.value = window.location.hash.substring(1);
                 // invalidate location so that users cannot share personal links
-                window.location.hash = '#do-not-share-your-personal-link';
+                window.history.pushState({}, '', '/#do-not-share-your-personal-link');
             }
             return parseHash.value;
-        }
+        };
 
         const quit = function () {
             window.location.href = '/';
-        }
+        };
 
-        const getSsConfig = function(hash) {
-            return fetch('/' + hash)
-                .then(response => response.json())
-                .catch(quit);
-        }
+        const getSubscriptionUrl = function(hash) {
+            return `https://${location.host}/${hash}`;
+        };
 
-        const getSsConfUri = function(hash) {
-            return 'ssconf://' + location.host + '/' + hash;
-        }
-
-        const getSsUri = function(server) {
-            return `ss://${btoa(`${server.method}:${server.password}`)}@${server.server}:${server['server_port']}?prefix=${server['prefix']}`;
-        }
-
-        const getStraisandUri = function(server) {
-            return 'streisand://import/' + getSsUri(server);
-        }
+        const getHiddifyUrl = function(hash) {
+            return `hiddify://import/${getSubscriptionUrl(hash)}`;
+        };
 
         const render = function(hash) {
-            const ssConfUri = getSsConfUri(hash);
             document.getElementById('connect_vpn').addEventListener('click', () => {
-                window.location.href = ssConfUri;
+                window.location.href = getHiddifyUrl(hash);
             });
             document.getElementById('body').style = `
                 display: block;
@@ -58,58 +47,12 @@
                 background-color: white;
                 padding: 1rem;
             `;
-            for (element of document.getElementsByClassName('sip008_uri')) {
-                element.innerHTML = ssConfUri;
+            const subscriptionUrl = getSubscriptionUrl(hash);
+            for (element of document.getElementsByClassName('subscription_uri')) {
+                element.innerHTML = subscriptionUrl;
             };
-
-            getSsConfig(hash)
-                .then(renderStaticConfigurations)
-                .then(html => document.getElementById('nerd').innerHTML = html);
-        }
-
-        const renderStaticConfigurations = function(config) {
-            return `
-                <h2>Статические конфигурации</h2>
-                <p>
-                    Конфигурации ниже временные, пока не обновится динамический конфиг. Когда это произойдёт, впн перестанет работать.
-                    В этом случае нужно будет открыть эту страницу и перенастроить клиент с новыми параметрами. Конфиг обновиться может в любой момент.
-                </p>
-                ${config['servers'].map(renderStaticServerConfig).join('')}
-            `;
+            document.getElementById('nerd').setAttribute('href', subscriptionUrl);
         };
-
-        const renderStaticServerConfig = function (server) {
-            const streisandUri = getStraisandUri(server);
-            const ssUri = getSsUri(server);
-            return `
-                <hr/>
-                <h3>${server['remarks']}</h3>
-                <div>
-                    <h4><a href="https://apps.apple.com/app/id6450534064">Streisand</a> (iOS & OS X only)</h4>
-                    <div style="text-align: center; margin: 1rem;">
-                        <button onClick="window.location.href = '${streisandUri}'">Подключить</button>
-                    </div>
-                    <code>${streisandUri}</code>
-                </div>
-                <div>
-                    <h4>Shadowsocks URI</h4>
-                    <div style="text-align: center; margin: 1rem;">
-                        <button onClick="window.location.href = '${ssUri}'">Подключить</button>
-                    </div>
-                    <code>${ssUri}</code>
-                </div>
-                <div>
-                    <h4>Ваще ручная настройка</h4>
-                    <ul>
-                        <li>Server: <code>${server['server']}</code></li>
-                        <li>Port: <code>${server['server_port']}</code></li>
-                        <li>Password: <code>${server['password']}</code></li>
-                        <li>Method: <code>${server['method']}</code></li>
-                        <li>Prefix: <code>${server['prefix']}</code></li>
-                    </ul>
-                </div>
-            `;
-        }
     </script>
     <style>
         .download_link {
@@ -184,51 +127,63 @@
         <h1>Итак, как подключить впн:</h1>
         <ol style="border: 0.2rem red solid; padding: 1rem 2rem 0 2rem;">
             <li>
-                Скачиваем приложение Outline:
+                Скачай приложение <b>Hiddify</b>:
                 <div class="grid2x2">
                     <div class="box">
                         <div>
-                            <a href="https://itunes.apple.com/us/app/outline-app/id1356177741">
+                            <a href="https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532" target="_blank">
                                 <img class="download_link" src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-example-preferred_2x.png"/>
                             </a>
                         </div>
                     </div>
                     <div class="box">
                         <div>
-                            <a href="https://play.google.com/store/apps/details?id=org.outline.android.client">
+                            <a href="https://play.google.com/store/apps/details?id=app.hiddify.com" target="_blank">
                                 <img class="download_link" src="https://play.google.com/intl/en_us/badges/static/images/badges/ru_badge_web_generic.png"/>
                             </a>
                         </div>
                     </div>
                     <div class="box">
                         <div>
-                            <a href="https://s3.amazonaws.com/outline-releases/client/windows/stable/Outline-Client.exe">
+                            <a href="https://github.com/hiddify/hiddify-app/releases/latest/download/Hiddify-Windows-Setup-x64.Msix" target="_blank">
                                 <img class="download_link" src="https://www.realsoftphone.com/assets/images/download-from-windows-store-1-698x238.png"/>
                             </a>
                         </div>
                     </div>
                     <div class="box border">
                         <div>
-                            <a class="download_link text" href="https://getoutline.org/get-started/#step-3">другие платформы</a>
+                            <a class="download_link text" href="https://hiddify.com#app" target="_blank">другие платформы</a>
                         </div>
                     </div>
             </li>
             <li>
-                Нажимаем на кнопку <b>Подключить ВПН</b> внизу.<br/>
-                Откроется приложение, жмём <b>Got it</b>, затем <b>Add server</b>
+                Выключи проксирование трафика на российские ресурсы, чтобы не включать и выключать впн каждый раз. Для этого:
+                <ol>
+                    <li>Открой <b>Hiddify</b></li>
+                    <li>Нажми на <b>Settings</b> (кнопка с шестерёнками) внизу экрана в Hiddify</li>
+                    <li>Пролистай до секции <b>Route Options</b> (3-я секция)</li>
+                    <li>Нажми на <b>Region</b> (первый в секции)</li>
+                    <li>Выбери <b>Russia (ru)</b></li>
+                    <li>Закрой <b>Hiddify</b></li>
+                </ol>
+                <br/>
+            </li>
+            <li>
+                Нажми на кнопку <b>Подключить ВПН</b> внизу.<br/>
+                Откроется приложение, должно выскочить зеленое уведомление, что ВПН добавлен.
                 <div style="text-align: center; margin: 1rem;">
                     <button id="connect_vpn" class="connect-vpn"><b>Подключить ВПН</b></button>
                 </div>
                 <p>
-                    Если кнопка не работает, скопируйте текст ниже и вставьте его в Outline:
+                    Если кнопка не работает, скопируй текст ниже и вставь его в Hiddify:
                 </p>
                 <p>
-                    <code class="sip008_uri"></code>
+                    <code class="subscription_uri"></code>
                 </p>
             </li>
         </ol>
 
-        <p>Теперь впн установлен. Чтобы подключиться, нажимаем на <b>Connect</b>.<br/>Чтобы потом отключиться - <b>Disconnect</b>. Outline лучше не закрывать пока пользуетесь впн'ом</p>
+        <p>Теперь впн установлен. Чтобы подключиться, нажми на больную кнопку. Hiddify лучше не закрывать пока пользуетесь впн'ом</p>
         <p>При первом подключении телефон/комп может запросить разрешение на добавление нового впн (айфон, например, просит ввести пароль).</p>
     </section>
 
@@ -236,22 +191,22 @@
         <h1>FAQ</h1>
         <p>
             <b>Друг/девушка/жена/мама тоже хочет впн. Могу дать свою ссылку?</b><br/>
-            Нет, свою ссылку никому давать нельзя. Напишите <a href="https://t.me/ed_asriyan">@ed_asriyan</a> в личку, я выдам новую персональную ссылку. Если не отвечаю, напишите ещё раз или подождите.
+            Нет, свою ссылку никому давать нельзя. Напиши <a href="https://t.me/ed_asriyan">@ed_asriyan</a> в личку, я выдам новую персональную ссылку. Если не отвечаю, напиши ещё раз или подожди.
         </p>
 
         <p>
             <b>У меня есть впн для телефона. Можно его поставить на комп?</b><br/>
-            Да. Выше есть ссылки на скачивания для windows и других платформ. Конфигурацию можете использовать ту же, что используете на телефоне. Главное, не перепутайте, какую конфигурацию вы используете, а какую выдали друзьям.
+            Да. Выше есть ссылки на скачивания для windows и других платформ. Конфигурацию можешь использовать ту же, что используете на телефоне. Главное, не перепутай, какую конфигурацию ты используешь, а какая выдана друзьям.
         </p>
 
         <p>
             <b>ВПН перестал работать/начал барахлить/не грузит/... Что делать?</b><br/>
-            Попробуйте отключиться от впн, закрыть Outline, открыть его и подключиться заново. Если не помогло, напишите <a href="https://t.me/ed_asriyan">@ed_asriyan</a> в личку и опишите проблему. Если можете сделать скриншот ошибки или запись экрана — вообще супер. Пожалуйста, опишите проблему сразу же в первом сообщении.
+            Попробуй отключиться от впн, нажать на иконку "обновить" сверху слева на экране Hiddify. Если не помогло, напиши <a href="https://t.me/ed_asriyan">@ed_asriyan</a> в личку и опиши проблему. Если можешь сделать скриншот ошибки или запись экрана — вообще супер. Пожалуйста, опиши проблему сразу же в первом сообщении.
         </p>
 
         <p>
             <b>Отслеживаются ли данные о том какие сайты я посещаю, что смотрю, скачиваю и т.д.?</b><br/>
-            Нет. Ничего не отслеживается и тем более не анализируется и не сохраняется. Логирование трафика пользователей не ведётся. Однако, если вы попытаетесь подключиться к серверу не по shadowsocks протоколу, то это будет залогировано. Так я стараюсь выявить факты <a href="https://chatgpt.com/share/6732eca2-4cf4-8000-852f-3615602dc08e" target="_blank">active-probing</a> и затруднить выявление.
+            Нет. Ничего не отслеживается и тем более не анализируется и не сохраняется. Логирование трафика пользователей не ведётся. Однако, если ты попытаешься подключиться к серверу не по VLESS протоколу, то это будет залогировано.
         </p>
 
         <p>
@@ -261,40 +216,35 @@
 
         <p>
             <b>Какая скорость?</b><br/>
-            У самого сервера пропускная способность 1 Gbit, которая делится на всех одновременно подключенных пользователей. Но фактическая скорость может быть ограничена вашим провайдером. Например, если у вас 100 Mbit, больше ста под впн у вас тоже никак не будет.
+            У самого сервера пропускная способность 1 Gbit, которая делится на всех одновременно подключенных пользователей. Но фактическая скорость может быть ограничена вашим провайдером. Например, если у тебя 100 Mbit, больше ста под впн у вас тоже никак не будет.
         </b>
 
         <p>
             <b>Какой протокол?</b><br/>
-            <a href="https://shadowsocks.org">Shadowsocks</a>, реализация от <a href="https://jigsaw.google.com">Jigsaw</a> (подразделение Google).
+            VLESS+REALITY, реализация от <a href="https://xtls.github.io" target="_blank">Project X</a>.
         </p>
 
         <p>
             <b>Ты пишешь, что это впн, а на самом деле это просто прокси</b><br/>
-            Верно, но люди знают только слово "впн" и задают не задают лиших вопросов - так как у них всё - "впн"
+            Верно, но люди знают только слово "впн" и задают не задают лиших вопросов - так как у них всё - "впн".
         </p>
 
         <p>
             <b>Исходные код можно посмотреть?</b><br/>
-            Деплой <a href="https://github.com/ed-asriyan/proxy-server">тут</a>, а там уже найдёте ссылки на опенсорс, который деплоется.
+            Деплой <a href="https://github.com/ed-asriyan/xray-server">тут</a>, а там уже найдёшь ссылки на опенсорс, который деплоется.
         </p>
     </section>
 
     <section>
         <h1>Ручная настройка</h1>
         <p>
-            Если ты тоже задрот и дочитал до сюда, можешь настроить впн вручную. Для этого выбери способ и используй соответствующие параметры. Существует 2 типа конфигураций: динамеческая (SIP008) и статическая.
+            Если ты тоже задрот и дочитал до сюда, можешь настроить впн вручную. Для этого открой ссылку и используй данные из скаченного текстового файла. Учти, что данные в этой ссылке динамичные и могут изменится в любой момент.
         </p>
-        <div>
-            <h2>Динамическая конфигурация (SIP008)</h2>
-            <p>
-                Если клиент поддерживает <a href="https://shadowsocks.org/doc/sip008.html">SIP008</a>, используйте следующий URI:
-            </p>
-            <code class="sip008_uri"></code>
+        <div class="text-center">
+            <a id="nerd">
+                Ссылка
+            </a>
         </div>
-        <section id="nerd">
-
-        </section>
     </section>
 </body>
 </html>

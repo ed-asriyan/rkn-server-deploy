@@ -1,0 +1,5 @@
+# the port xray_exporter should locally (localhost) export http metrics on
+xray_exporter_port:
+
+# the local post xray_exporter should fetch expvars from
+xray_exporter_fetch_port:

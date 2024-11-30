@@ -6,9 +6,9 @@ all:
       # linux user to connect to ssh to the server as
       ansible_user:
     proxy1:
-      # uuid of the shadowsocks server that should be deployed (from config/servers.yml)
+      # uuid of the xray server that should be deployed (from config/servers.yml)
       hosts_server_uuid:
-      # public domain or IP where shadowsocks should be deployed (if ssh and shadowsocks are on the same IP, it should be equal to config_servers[hosts_server_uuid].host value)
+      # public domain or IP where xray should be deployed (if ssh and xray are on the same IP, it should be equal to config_servers[hosts_server_uuid].host value)
       ansible_host:
       # linux user to connect to ssh to the server as
       ansible_user:

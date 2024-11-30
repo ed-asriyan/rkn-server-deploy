@@ -9,3 +9,9 @@ users_configs_servers:
 
 # relative path of directory where static content should be stored
 users_configs_static_directory_filename:
+
+# title users should we when open hiddify
+users_configs_title:
+
+# see https://hiddify.com/app/URL-Scheme
+users_configs_support_url:

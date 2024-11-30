@@ -1,0 +1,6 @@
+# users as described in /users-example.yml
+xray_users:
+# one(!) server item as secribed in /servers-example.yml
+xray_server:
+# port on localhost to export expvars on
+xray_metrics_port:

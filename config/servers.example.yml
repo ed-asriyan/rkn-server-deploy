@@ -1,55 +1,50 @@
 config_servers:
   server1-uuid:
-    # domain of server that will be put into config
+    # domain of server that will be put into config (IP or domain users will connect to)
     host:
-    # description or name of server
-    remarks:
-    # port of shadowsocks to be exposed and used publicly
+    # name of server (one line)
+    name:
+    # port of xray to be exposed and used publicly
     port:
-    # cipher to use in shadowsocks
-    method:
-    # secret (any random string) to be used for generating client passwords
-    secret:
-    # prefix to use. read more: https://www.reddit.com/r/outlinevpn/wiki/index/prefixing
-    prefix:
-    # where regular https requests (non-shadowsocks requests) proxy to
-    fallback_proxy_target:
-    # if you don't want to install prometheus on the server, replace yaml object to boolean false:
-    # prometheus_metrics: false
-    prometheus_metrics:
-      # port where prometheus metrics endpoints should be exposed
-      port:
-      # content of self-signed cert and keys (SSL pem format)
-      tls:
-        certificate: |
-            -----BEGIN CERTIFICATE-----
-            ....
-            -----END CERTIFICATE-----
-        key: |
-            -----BEGIN PRIVATE KEY-----
-            ....
-            -----END PRIVATE KEY-----
-      shadowsocks:
-        # any random URL-valid string starting with "/"
-        url_path:
-      node_exporter:
-        # any random URL-valid string starting with "/"
-        url_path:
+    # flow parameter in https://xtls.github.io/en/config/outbounds/vless.html#serverobject (ideally xtls-rprx-vision)
+    flow:
+    # fingerprint parameters as `fingerprint` in https://xtls.github.io/ru/config/transport.html#tlsobject
+    fingerprints:
+      - chrome
+      - safari
+      - "..."
+    # private key. generate with ./xray x25519
+    private_key:
+    # public key. generate with ./xray x25519
+    public_key:
+    # where regular https requests proxy to and what website xray should pretent as
+    fallback_proxy_target: example.com
+    # list of sni should be accepter by xray. see serverNames in https://xtls.github.io/ru/config/transport.html#realityobject
+    supported_snis:
+      - example.com
+      - www.example.com
+
   # second server (for instance)
   server2-uuid:
+    # domain of server that will be put into config (IP or domain users will connect to)
     host:
-    remarks:
+    # name of server (one line)
+    name:
+    # port of xray to be exposed and used publicly
     port:
-    method:
-    secret:
-    prefix:
+    # flow parameter in https://xtls.github.io/en/config/outbounds/vless.html#serverobject (ideally xtls-rprx-vision)
+    flow:
+    # fingerprint parameter in https://xtls.github.io/ru/config/transport.html#tlsobject
+    fingerprints:
+      -
+      -
+    # private key. generate with ./xray x25519
+    private_key:
+    # public key. generate with ./xray x25519
+    public_key:
+    # where regular https requests proxy to and what website xray should pretent as
     fallback_proxy_target:
-    prometheus_metrics:
-      port:
-      tls:
-        certificate_path:
-        key_path:
-      shadowsocks:
-        url_path:
-      node_exporter:
-        url_path:
+    # list of sni should be accepter by xray. see serverNames in https://xtls.github.io/ru/config/transport.html#realityobject
+    supported_snis:
+      -
+      -

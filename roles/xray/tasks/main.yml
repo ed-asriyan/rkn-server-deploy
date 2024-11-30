@@ -1,0 +1,104 @@
+- name: Ensure required variables are defined
+  assert:
+    that:
+      - xray_server_uuid is string
+
+- name: Ensure xray_users is defined correctly
+  include_tasks: tasks/assert-users.yml
+  vars:
+    users: "{{ xray_users }}"
+
+- name: Ensure xray_server is defined correctly
+  include_tasks: tasks/assert-server.yml
+  vars:
+    server: "{{ xray_server }}"
+
+- name: Install the prerequisites
+  with_items:
+    - unzip
+  package:
+    name: "{{ item }}"
+    state: present
+
+- name: Create user
+  user: name={{ xray_user }}
+
+- name: Detect arch
+  command: uname -m
+  check_mode: no
+  register: arch
+
+- name: Know if the directory exists
+  stat:
+    path: "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}"
+  register: file_stat
+
+- name: Create directory for xray files
+  file:
+    path: "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}"
+    group: "{{ xray_user }}"
+    owner: "{{ xray_user }}"
+    mode: "700"
+    state: directory
+
+- name: Download & extract xray
+  when: "file_stat.stat.exists == false"
+  unarchive:
+    src: "{{ xray_downloads[arch.stdout].url }}"
+    dest: "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}"
+    remote_src: yes
+  register: download
+
+# https://superuser.com/a/892391
+- name: Set CAP_NET_BIND_SERVICE capability for xray
+  when: download.changed
+  command: setcap 'cap_net_bind_service=+ep' "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}/{{ xray_executable_name }}"
+
+- name: Set xray ownership, group and permissions
+  file:
+    path: "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}/{{ xray_executable_name }}"
+    group: "{{ xray_user }}"
+    owner: "{{ xray_user }}"
+    mode: "700"
+
+- name: Set executable ownership, group and permissions
+  file:
+    path: "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}/{{ xray_executable_name }}"
+    group: "{{ xray_user }}"
+    owner: "{{ xray_user }}"
+    mode: "700"
+
+- name: Render xray config
+  template:
+    src: config.json.j2
+    dest: "/home/{{ xray_user }}/{{ xray_config_file_name }}"
+    group: "{{ xray_user }}"
+    owner: "{{ xray_user }}"
+    mode: "600"
+  register: config
+
+- name: Remove unexpected files in home
+  include_tasks: tasks/remove-unexpected-files.yml
+  vars:
+    directory: "/home/{{ xray_user }}"
+    files:
+      - "{{ xray_config_file_name }}"
+      - "{{ xray_downloads[arch.stdout].directory }}"
+
+- name: Render systemd service config
+  template:
+    src: xray.service.j2
+    dest: /etc/systemd/system/xray.service
+  register: systemd
+
+- name: Reload daemon
+  systemd:
+    daemon_reload: yes
+  when: systemd.changed
+
+- name: Restart systemd app service
+  systemd:
+    name: xray.service
+    state: restarted
+    enabled: yes
+  when: systemd.changed or download.changed or config.changed

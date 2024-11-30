@@ -1,0 +1,5 @@
+# linus user to run node-exporter as
+xray_exporter_user: xray-exporter
+
+# name of node-exporter executable file
+xray_exporter_executable_name: xray_exporter.sh

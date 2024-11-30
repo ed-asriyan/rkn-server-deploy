@@ -10,13 +10,27 @@
   assert:
     that:
       - server.host is string
-      - server.remarks is string
+      - server.name is string
       - server.port is number
-      - server.method is string
-      - server.secret is string
-      - server.prefix is string
+      - server.flow is string
+      - server.private_key is string
+      - server.public_key is string
       - server.fallback_proxy_target is string
+      - (server.fingerprints | length) > 0
+      - (server.supported_snis | length) > 0
       - server.prometheus_metrics is mapping or server.prometheus_metrics == false
+
+- name: Ensure serve.fingerprints variable is defined correctly
+  with_items: server.fingerprints
+  assert:
+    that:
+      - item is string
+
+- name: Ensure serve.supported_snis variable is defined correctly
+  with_items: server.supported_snis
+  assert:
+    that:
+      - item is string
 
 - name: Ensure serve.prometheus_metrics variable is defined correctly
   when: server.prometheus_metrics is mapping
@@ -25,7 +39,7 @@
       - server.prometheus_metrics.port is number
       - server.prometheus_metrics.tls.certificate is string
       - server.prometheus_metrics.tls.key is string
-      - server.prometheus_metrics.shadowsocks is mapping
-      - server.prometheus_metrics.shadowsocks.url_path is string
+      - server.prometheus_metrics.xray is mapping
+      - server.prometheus_metrics.xray.url_path is string
       - server.prometheus_metrics.node_exporter is mapping
       - server.prometheus_metrics.node_exporter.url_path is string

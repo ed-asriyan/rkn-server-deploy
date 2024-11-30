@@ -1,8 +1,8 @@
-# Proxy [![CI | pre-commit](https://github.com/ed-asriyan/proxy-server/actions/workflows/CI-pre-commit.yml/badge.svg)](https://github.com/ed-asriyan/proxy-server/actions/workflows/CI-pre-commit.yml) [![CD | Production](https://github.com/ed-asriyan/proxy-server/actions/workflows/CD-production.yml/badge.svg)](https://github.com/ed-asriyan/proxy-server/actions/workflows/CD-production.yml)
-This is deployment for my personal server with [outline](http://getoutline.org)/[shadowsocks](http://shadowsocks.org) on board for me and my friends to bypass internet censorship.
+# Proxy [![CI | pre-commit](https://github.com/ed-asriyan/xray-server/actions/workflows/CI-pre-commit.yml/badge.svg)](https://github.com/ed-asriyan/xray-server/actions/workflows/CI-pre-commit.yml) [![CD | Production](https://github.com/ed-asriyan/xray-server/actions/workflows/CD-production.yml/badge.svg)](https://github.com/ed-asriyan/xray-server/actions/workflows/CD-production.yml)
+This is deployment for my personal server with [xray](https://xtls.github.io/en/) on board for me and my friends to bypass internet censorship.
 
-## Shadowsocks clients that work with this setup
-https://getoutline.org/get-started/#step-3
+## Vless clients that work with this setup
+https://hiddify.com#app
 
 # Architecture
 ![digram](./diagram.svg)
@@ -13,8 +13,13 @@ each instance should have dedicated IP address and DNS record (if exists). All h
 
 ## GH Pages
 Serves static content:
-* static html pages with installation instructions. The user is provided with a private instruction link with a personal ShadowSocks configuration, which the user uses once to install the ShadowSocks configuration
-* personal dynamic ShadowSocks configuration json files ([SIP008](https://shadowsocks.org/doc/sip008.html)) for each client, which is used by ShadowSocks client each time before connecting to a ShadowSocks server
+* static html pages with installation instructions. The user is provided with a private instruction link with a personal vless
+[subscription URL](https://hiddify.com/app/URL-Scheme), which the user uses once to install the vless configuration
+* personal vless [subscription files](https://hiddify.com/app/URL-Scheme) for each client, which is used by Hiddify to refresh
+list of available servers
+
+Playbook: [users-configs.yml](./users-configs.yml). It just renders files locally, the should be uploaded got GitHub Pages using
+Actions.
 
 ## Metrics
 It is a single linux host with the prometheus installed. Users do not access this host. Host may have no domain name.
@@ -25,14 +30,15 @@ Playbook: [metrics.yml](./metrics.yml)
 ## Proxy
 As many proxy hosts as needed could be deployed but each one should have its own IP address and/or DNS record.
 Proxy(ies) is/are linux host(s) with installed
-* [outline-ss-server](https://github.com/Jigsaw-Code/outline-ss-server) (role: `shadowsocks`): Shadowsocks implementation made by
-https://jigsaw.google.com that supports multiple access keys
-* [node-exporter](https://github.com/prometheus/node_exporter) (role: `node-exporter`): Prometheus exporter for hardware and OS metrics
-* [nginx](https://nginx.org) (role: `shadowsocks-gateway`) that proxies traffic:
-  * port `config_servers[uuid].port`:
-    * if connection is recognized as TLS, request is handled as HTTPS connection
-    * otherwise; connection is proxied to ShadoSocks server
-  * port `config_servers[uuid].prometheus_metrics.port`: to outline-ss-server and node-exporter metrics endpoints
+* [xray-core](https://github.com/xtls/xray-core) (role: `xray`) that proxies traffic:
+  * if it's valid vless connection, to the destination
+  * otherwise, to `server.fallback_proxy_target`
+* [node-exporter](https://github.com/prometheus/node_exporter) (role: `node-exporter`): Prometheus exporter for hardware and OS
+metrics. Exports metrics to TCP port available from localhost only
+* xray-exporter (role: `node-exporter`): custom script that exports xray metrics. Exports metrics to TCP port available from
+localhost only
+* [nginx](https://nginx.org) (role: `metrics-exporter`) that proxies https requests on
+`config_servers[uuid].prometheus_metrics.port` TCP port to *node-exporter* and *xray-exporter*:
 
 Playbook: [proxies.yml](./proxies.yml)
 
@@ -69,7 +75,7 @@ Read code and find out
 
 ## How to apply changes to production
 * If you changed deploy code: just push to master branch. GitHub Actions will automatically apply updates to the servers.
-* If you changed list of users: manually trigger [CD | Production](https://github.com/ed-asriyan/proxy-server/actions/workflows/CD-production.yml)
+* If you changed list of users: manually trigger [CD | Production](https://github.com/ed-asriyan/xray-server/actions/workflows/CD-production.yml)
 
 # Development
 ## CD

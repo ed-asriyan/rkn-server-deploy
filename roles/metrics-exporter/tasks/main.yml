@@ -1,0 +1,74 @@
+
+- name: Ensure required variables are defined
+  assert:
+    that:
+      - metrics_exporter_xray_metrics_port is number
+      - metrics_exporter_node_exporter_metrics_port is number
+
+- name: Ensure metrics_exporter_server is defined correctly
+  include_tasks: tasks/assert-server.yml
+  vars:
+    server: "{{ metrics_exporter_server }}"
+
+- name: Create user
+  user: name={{ metrics_exporter_user }}
+
+- name: Render nginx config
+  template:
+    src: nginx.conf.j2
+    dest: "/home/{{ metrics_exporter_user }}/{{ metrics_exporter_nginx_conf_filename }}"
+    group: "{{ metrics_exporter_user }}"
+    owner: "{{ metrics_exporter_user }}"
+    mode: "600"
+  register: config
+
+- name: Copy SSL key
+  copy:
+    content: "{{ metrics_exporter_server.prometheus_metrics.tls.key }}"
+    dest: "{{ metrics_exporter_key_path }}"
+    group: "{{ metrics_exporter_user }}"
+    owner: "{{ metrics_exporter_user }}"
+    mode: "600"
+  when: metrics_exporter_server.prometheus_metrics is mapping
+  register: ssl_key
+
+- name: Copy SSL certificate
+  copy:
+    content: "{{ metrics_exporter_server.prometheus_metrics.tls.certificate }}"
+    dest: "{{ metrics_exporter_certificate_path }}"
+    group: "{{ metrics_exporter_user }}"
+    owner: "{{ metrics_exporter_user }}"
+    mode: "600"
+  when: metrics_exporter_server.prometheus_metrics is mapping
+  register: ssl_cert
+
+- name: Remove unexpected files in home
+  include_tasks: tasks/remove-unexpected-files.yml
+  vars:
+    directory: "/home/{{ metrics_exporter_user }}"
+    files:
+      - nginx.conf
+      - "{{ metrics_exporter_certificate_filename }}"
+      - "{{ metrics_exporter_key_filename }}"
+      - "{{ metrics_exporter_pid_filename }}"
+      - "{{ metrics_exporter_nginx_conf_filename }}"
+      - "{{ metrics_exporter_access_log_filename }}"
+      - "{{ metrics_exporter_error_log_filename }}"
+
+- name: Render systemd service config
+  template:
+    src: metrics-exporter.service.j2
+    dest: /etc/systemd/system/metrics-exporter.service
+  register: systemd
+
+- name: Reload daemon
+  systemd:
+    daemon_reload: yes
+  when: systemd.changed
+
+- name: Restart systemd app service
+  systemd:
+    name: metrics-exporter.service
+    state: restarted
+    enabled: yes
+  when: systemd.changed or config.changed or ssl_key.changed or ssl_cert.changed

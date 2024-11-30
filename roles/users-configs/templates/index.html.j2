@@ -13,12 +13,7 @@
             const hash = window.location.hash;
 
             if (hash) {
-                let url;
-                if (hash.startsWith("#ssconf://")) {
-                    url = "https://" + hash.slice(9);
-                } else {
-                    url = "/" + hash.slice(1);
-                }
+                const url= "/" + hash.slice(1) + ".json";
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {

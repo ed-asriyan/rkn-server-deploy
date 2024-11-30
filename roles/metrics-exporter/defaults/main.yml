@@ -1,0 +1,8 @@
+# one(!) server item as secribed in /servers-example.yml
+metrics_exporter_server:
+
+# localhost port xray metrics are available on
+metrics_exporter_xray_metrics_port:
+
+# localhost port node_exporter metrics are available on
+metrics_exporter_node_exporter_metrics_port:

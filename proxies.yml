@@ -4,9 +4,27 @@
   vars_files:
     - ./config/users.yml
     - ./config/servers.yml
+  vars:
+    # do not worry. these ports are local
+    config_local_xray_metrics_port: 8081
+    config_local_node_exporter_metrics_port: 8082
+    config_local_xray_exporter_metrics_port: 8080
   roles:
-    - role: shadowsocks-gateway
+    - role: xray
       vars:
-        shadowsocks_gateway_server_uuid: "{{ hosts_server_uuid }}"
-        shadowsocks_gateway_server: "{{ config_servers[shadowsocks_gateway_server_uuid] }}"
-        shadowsocks_gateway_users: "{{ config_users }}"
+        xray_server_uuid: "{{ hosts_server_uuid }}"
+        xray_server: "{{ config_servers[xray_server_uuid] }}"
+        xray_users: "{{ config_users }}"
+        xray_metrics_port: "{{ config_local_xray_metrics_port }}"
+    - role: node-exporter
+      vars:
+        node_exporter_port: "{{ config_local_node_exporter_metrics_port }}"
+    - role: xray-exporter
+      vars:
+        xray_exporter_port: "{{ config_local_xray_exporter_metrics_port }}"
+        xray_exporter_fetch_port: "{{ config_local_xray_metrics_port }}"
+    - role: metrics-exporter
+      vars:
+        metrics_exporter_server: "{{ config_servers[hosts_server_uuid] }}"
+        metrics_exporter_node_exporter_metrics_port: "{{ config_local_node_exporter_metrics_port }}"
+        metrics_exporter_xray_metrics_port: "{{ config_local_xray_exporter_metrics_port }}"

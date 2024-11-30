@@ -1,2 +1,8 @@
 # where redirect to if user opened index page without valid parameters
 config_users_configs_default_redirect:
+
+# title users should we when open hiddify
+config_users_title:
+
+# support url. see https://hiddify.com/app/URL-Scheme
+config_users_support_url:

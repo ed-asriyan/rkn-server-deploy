@@ -1,0 +1,156 @@
+{
+  "inbounds": [
+    {
+      "listen": null,
+      "port": {{ xray_server.port }},
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {% for user in xray_users | dict2items %}
+            {
+              "email": "{{ user.value.name }}",
+              "flow": "{{ xray_server.flow }}",
+              "id": "{{ user.key }}"
+            }
+            {% if not loop.last %}
+              ,
+            {% endif %}
+          {% endfor %}
+        ],
+        "decryption": "none",
+        "fallbacks": []
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "realitySettings": {
+          "dest": "{{ xray_server.fallback_proxy_target }}:443",
+          "maxClient": "",
+          "maxTimediff": 0,
+          "minClient": "",
+          "privateKey": "{{ xray_server.private_key }}",
+          "serverNames": [
+            {% for sni in xray_server.supported_snis %}
+              "{{ sni }}"
+              {% if not loop.last %}
+                ,
+              {% endif %}
+            {% endfor %}
+          ],
+          "shortIds": [""],
+          "show": false,
+          "xver": 0
+        },
+        "security": "reality",
+        "tcpSettings": {
+          "acceptProxyProtocol": false,
+          "header": {
+            "type": "none"
+          }
+        }
+      },
+      "tag": "inbound-vless",
+      "sniffing": {
+        "enabled": false,
+        "destOverride": [
+          "http",
+          "tls",
+          "quic",
+          "fakedns"
+        ],
+        "metadataOnly": false,
+        "routeOnly": false
+      },
+      "allocate": {
+        "strategy": "always",
+        "refresh": 5,
+        "concurrency": 3
+      }
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": {{ xray_metrics_port }},
+      "protocol": "dokodemo-door",
+      "settings": {
+        "address": "127.0.0.1"
+      },
+      "tag": "metrics_in"
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "direct",
+      "protocol": "freedom"
+    },
+    {
+      "tag": "blocked",
+      "protocol": "blackhole",
+      "settings": {}
+    }
+  ],
+
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "type": "field",
+        "inboundTag": [
+          "inbound-vless"
+        ],
+        "outboundTag": "blocked",
+        "ip": [
+          "geoip:private"
+        ]
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "metrics_in"
+        ],
+        "outboundTag": "metrics_out"
+      }
+    ]
+  },
+
+  "metrics": {
+    "tag": "metrics_out"
+  },
+
+  "log": {
+    "access": "none",
+    "dnsLog": false,
+    "error": "/home/{{ xray_user }}/{{ xray_error_log_file_name }}",
+    "loglevel": "warning",
+    "maskAddress": ""
+  },
+
+  "dns": null,
+
+  "transport": null,
+
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserDownlink": true,
+        "statsUserUplink": true
+      }
+    },
+    "system": {
+      "statsInboundDownlink": true,
+      "statsInboundUplink": true,
+      "statsOutboundDownlink": true,
+      "statsOutboundUplink": true
+    }
+  },
+
+  "api": null,
+
+  "stats": {},
+
+  "reverse": null,
+
+  "fakedns": null,
+
+  "observatory": null,
+
+  "burstObservatory": null
+}

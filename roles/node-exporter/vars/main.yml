@@ -1,7 +1,7 @@
 # linus user to run node-exporter as
 node_exporter_user: node_exporter
 
-# URL to download outline from
+# URL to download node-exporter from
 node_exporter_downloads:
   x86_64:
     url: https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz

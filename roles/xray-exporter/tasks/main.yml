@@ -1,0 +1,49 @@
+- name: Ensure required variables are defined
+  assert:
+    that:
+      - xray_exporter_port is number
+      - xray_exporter_fetch_port is number
+
+- name: Install the prerequisites
+  with_items:
+    - jq
+  package:
+    name: "{{ item }}"
+    state: present
+
+- name: Create user
+  user: name={{ xray_exporter_user }}
+
+- name: Render executable
+  template:
+    src: executable.sh.j2
+    dest: "/home/{{ xray_exporter_user }}/{{ xray_exporter_executable_name }}"
+    group: "{{ xray_exporter_user }}"
+    owner: "{{ xray_exporter_user }}"
+    mode: "700"
+  register: executable
+
+- name: Remove unexpected files in home
+  include_tasks: tasks/remove-unexpected-files.yml
+  vars:
+    directory: "/home/{{ xray_exporter_user }}"
+    files:
+      - "{{ xray_exporter_executable_name }}"
+
+- name: Render systemd service config
+  template:
+    src: xray_exporter.service.j2
+    dest: /etc/systemd/system/xray_exporter.service
+  register: systemd
+
+- name: Reload daemon
+  systemd:
+    daemon_reload: yes
+  when: systemd.changed
+
+- name: Restart systemd app service
+  systemd:
+    name: xray_exporter.service
+    state: restarted
+    enabled: yes
+  when: systemd.changed or executable.changed

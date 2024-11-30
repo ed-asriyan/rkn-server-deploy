@@ -1,0 +1,11 @@
+[Unit]
+Description=xray-exporter
+
+[Service]
+User=root
+WorkingDirectory=/home/{{ xray_exporter_user }}
+ExecStart=/home/{{ xray_exporter_user }}/{{ xray_exporter_executable_name }}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

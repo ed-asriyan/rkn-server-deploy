@@ -1,0 +1,16 @@
+# linux user to run xray server as
+xray_user: xray
+# URL to download xray from
+xray_downloads:
+  x86_64:
+    url: https://github.com/XTLS/Xray-core/releases/download/v24.11.21/Xray-linux-64.zip
+    directory: Xray-linux-64
+  arm64:
+    url: https://github.com/XTLS/Xray-core/releases/download/v24.11.21/Xray-linux-arm64-v8a.zip
+    directory: Xray-linux-arm64-v8a
+# name of xray executable file
+xray_executable_name: xray
+# name of config.json
+xray_config_file_name: config.json
+# name of error log gile
+xray_error_log_file_name: error.log

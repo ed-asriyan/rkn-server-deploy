@@ -12,3 +12,5 @@
         users_configs_servers: "{{ config_servers }}"
         users_configs_users: "{{ config_users }}"
         users_configs_static_directory_filename: static
+        users_configs_title: "{{ config_users_title }}"
+        users_configs_support_url: "{{ config_users_support_url }}"

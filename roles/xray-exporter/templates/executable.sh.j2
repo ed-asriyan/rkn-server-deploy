@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# https://chatgpt.com/share/674b3aad-8a40-8000-b6fd-11ce180f877c
+
+# Function to fetch JSON from port and transform it into Prometheus metrics
+generate_metrics() {
+  # Fetch the JSON data from port {{ xray_exporter_fetch_port }}
+  json=$(curl -s http://localhost:{{ xray_exporter_fetch_port }}/debug/vars)
+
+  # Check if JSON is valid
+  if [[ -z "$json" ]]; then
+    echo -e "HTTP/1.1 500 Internal Server Error\nContent-Type: text/plain\n\nFailed to fetch data from port {{ xray_exporter_fetch_port }}"
+    return
+  fi
+
+  # Parse JSON and generate Prometheus metrics
+  metrics=$(echo "$json" | jq -r '
+    .stats.user | to_entries[] | 
+    [
+      "# HELP downlink Bytes transferred by the proxy, per access key",
+      "# TYPE downlink counter",
+      "downlink{user=\"" + .key + "\"} " + (.value.downlink | tostring),
+      "# HELP uplink Bytes transferred by the proxy, per access key",
+      "# TYPE uplink counter",
+      "uplink{user=\"" + .key + "\"} " + (.value.uplink | tostring)
+    ] | .[]
+  ')
+
+  # Serve the metrics
+  echo -e "HTTP/1.1 200 OK\nContent-Type: text/plain\n\n$metrics"
+}
+
+# Start a simple HTTP server on port {{ xray_exporter_port }} using netcat
+while true; do
+  # Listen for incoming connections
+  echo "Listening on port {{ xray_exporter_port }} for Prometheus metrics..."
+  # Serve metrics when a connection is received
+  { echo -e "$(generate_metrics)"; } | nc -l -p {{ xray_exporter_port }} -q 1
+done

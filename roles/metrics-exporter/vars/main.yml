@@ -1,0 +1,16 @@
+# linux user to run metrics_exporter as
+metrics_exporter_user: metrics-exporter
+
+metrics_exporter_nginx_conf_filename: nginx.conf
+metrics_exporter_certificate_filename: cert.pem
+metrics_exporter_key_filename: key.pem
+metrics_exporter_access_log_filename: access.log
+metrics_exporter_error_log_filename: error.log
+metrics_exporter_pid_filename: nginx.pid
+
+metrics_exporter_nginx_conf_path: /home/{{ metrics_exporter_user }}/{{metrics_exporter_nginx_conf_filename }}
+metrics_exporter_certificate_path: "/home/{{ metrics_exporter_user }}/{{ metrics_exporter_certificate_filename }}"
+metrics_exporter_key_path: "/home/{{ metrics_exporter_user }}/{{ metrics_exporter_key_filename }}"
+metrics_exporter_access_log_path: "/home/{{ metrics_exporter_user }}/{{ metrics_exporter_access_log_filename }}"
+metrics_exporter_error_log_path: "/home/{{ metrics_exporter_user }}/{{ metrics_exporter_error_log_filename }}"
+metrics_exporter_pid_path: "/home/{{ metrics_exporter_user }}/{{ metrics_exporter_pid_filename }}"

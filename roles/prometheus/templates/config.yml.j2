@@ -5,11 +5,11 @@ scrape_configs:
 {% set server = server_item.value %}
 {% set server_uuid = server_item.key %}
 {% if server.prometheus_metrics is mapping %}
-  - job_name: 'shadowsocks-{{ server.host }}'
+  - job_name: 'xray-{{ server.host }}'
     scheme: https
     tls_config:
       ca_file: '/home/{{ prometheus_user }}/{{ prometheus_scrape_ssl_certs_dir_name }}/{{ server_uuid }}-{{ prometheus_scrape_ssl_cert_filename_suffix }}'
-    metrics_path: '{{ server.prometheus_metrics.shadowsocks.url_path }}'
+    metrics_path: '{{ server.prometheus_metrics.xray.url_path }}'
     static_configs:
       - targets:
         - '{{ server.host }}:{{ server.prometheus_metrics.port }}'

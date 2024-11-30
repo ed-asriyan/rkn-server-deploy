@@ -1,0 +1,10 @@
+[Unit]
+Description=metrics-exporter
+
+[Service]
+User={{ metrics_exporter_user }}
+ExecStart=/usr/sbin/nginx -c {{ metrics_exporter_nginx_conf_path }}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

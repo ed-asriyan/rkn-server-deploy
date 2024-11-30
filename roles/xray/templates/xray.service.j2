@@ -1,0 +1,12 @@
+[Unit]
+Description=xray
+After=network.service
+
+[Service]
+User={{ xray_user }}
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+ExecStart=/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}/{{ xray_executable_name }} -c /home/{{ xray_user }}/{{ xray_config_file_name }}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -4,6 +4,5 @@ users_csv_users:
 # public domain of frontman (with instruction html and config json files)
 users_csv_domain:
 
-
 # output file name
 users_csv_output_file: "users.csv"
