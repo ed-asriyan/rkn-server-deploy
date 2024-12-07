@@ -89,20 +89,28 @@
   ],
 
   "routing": {
-    "domainStrategy": "AsIs",
+    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
-        "type": "field",
+        "inboundTag": [
+          "inbound-vless"
+        ],
+        "outboundTag": "blocked",
+        "domain": [
+          "geosite:category-ru"
+        ]
+      },
+      {
         "inboundTag": [
           "inbound-vless"
         ],
         "outboundTag": "blocked",
         "ip": [
-          "geoip:private"
+          "geoip:private",
+          "geoip:ru"
         ]
       },
       {
-        "type": "field",
         "inboundTag": [
           "metrics_in"
         ],
