@@ -1,9 +1,13 @@
 config_servers:
   server1-uuid:
-    # domain of server that will be put into config (IP or domain users will connect to)
-    host:
     # name of server (one line)
     name:
+    # domain of server that will be put into config (IP or domain users will connect to)
+    host:
+    # ip address xray server should listen to. leave blank to listen all IP addresses
+    inbound_ip:
+    # ip address xray server should use for outbound connections. leave blank to use default (on OS level) IP address
+    outbound_ip:
     # port of xray to be exposed and used publicly
     port:
     # flow parameter in https://xtls.github.io/en/config/outbounds/vless.html#serverobject (ideally xtls-rprx-vision)
@@ -26,10 +30,14 @@ config_servers:
 
   # second server (for instance)
   server2-uuid:
-    # domain of server that will be put into config (IP or domain users will connect to)
-    host:
     # name of server (one line)
     name:
+    # domain of server that will be put into config (IP or domain users will connect to)
+    host:
+    # ip address xray server should listen to. leave blank to listen all IP addresses
+    inbound_ip:
+    # ip address xray server should use for outbound connections. leave blank to use default (on OS level) IP address
+    outbound_ip:
     # port of xray to be exposed and used publicly
     port:
     # flow parameter in https://xtls.github.io/en/config/outbounds/vless.html#serverobject (ideally xtls-rprx-vision)

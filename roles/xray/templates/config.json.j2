@@ -1,7 +1,7 @@
 {
   "inbounds": [
     {
-      "listen": null,
+      "listen": {% if xray_server.inbound_ip %}"{{ xray_server.inbound_ip }}"{% else %}null{% endif %},
       "port": {{ xray_server.port }},
       "protocol": "vless",
       "settings": {
@@ -79,6 +79,9 @@
   "outbounds": [
     {
       "tag": "direct",
+      {% if xray_server.outbound_ip %}
+        "sendThrough": "{{ xray_server.outbound_ip }}",
+      {% endif %}
       "protocol": "freedom"
     },
     {

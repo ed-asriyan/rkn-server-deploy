@@ -9,6 +9,8 @@
 - name: Ensure server variable is defined correctly
   assert:
     that:
+      - server.inbound_ip is none or server.inbound_ip is string
+      - server.outbound_ip is none or server.outbound_ip is string
       - server.host is string
       - server.name is string
       - server.port is number
