@@ -1,1 +1,3 @@
 instruction_url_field_name: admin_login_url
+
+user_configs_frontend_html_url: https://github.com/ed-asriyan/xray-server-frontend/releases/latest/download/index.html

@@ -13,8 +13,11 @@ each instance should have dedicated IP address and DNS record (if exists). All h
 
 ## GH Pages
 Serves static content:
-* static html pages with installation instructions. The user is provided with a private instruction link with a personal vless
-[subscription URL](https://hiddify.com/app/URL-Scheme), which the user uses once to install the vless configuration
+* static html pages with installation instructions which is being developed in a separate repository:
+[xray-server-frontend](https://github.com/ed-asriyan/xray-server-frontend). The user is provided with a private instruction link
+with a personal ShadowSocks configuration, which the user uses once to install the ShadowSocks configuration* personal dynamic
+ShadowSocks configuration json files ([SIP008](https://shadowsocks.org/doc/sip008.html)) for each client, which is used by
+ShadowSocks client each time before connecting to a ShadowSocks server
 * personal vless [subscription files](https://hiddify.com/app/URL-Scheme) for each client, which is used by Hiddify to refresh
 list of available servers
 

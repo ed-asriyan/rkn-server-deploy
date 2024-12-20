@@ -30,8 +30,8 @@
     dest: "{{ users_configs_static_root_local }}/index.html"
 
 - name: Render guide.html
-  copy:
-    src: guide.html
+  get_url:
+    url: "{{ user_configs_frontend_html_url }}"
     dest: "{{ users_configs_static_root_local }}/{{ users_configs_instruction_filename }}"
 
 - name: Copy robots.txt
