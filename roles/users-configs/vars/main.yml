@@ -1,3 +1,7 @@
-instruction_url_field_name: admin_login_url
+user_configs_instruction_url_field_name: admin_login_url
 
 user_configs_frontend_html_url: https://github.com/ed-asriyan/xray-server-frontend/releases/latest/download/index.html
+
+users_configs_urls_map_filename: urls-map.json
+user_configs_hiddify_filename: hiddify
+user_configs_client_xray_config_filename: client-xray-config.json

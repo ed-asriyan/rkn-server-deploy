@@ -40,21 +40,9 @@
     dest: "{{ users_configs_static_root_local }}/robots.txt"
 
 - name: Render configs
-  template:
-    src: config.j2
-    dest: "{{ users_configs_static_root_local }}/{{ item.key }}"
   with_items: "{{ users_configs_users | dict2items }}"
   loop_control:
     index_var: loop_index
   vars:
     users_configs_user_uuid: "{{ item.key }}"
-    users_configs_default_server: "{{ users_configs_servers[users_configs_default_server_uuid] }}"
-    users_configs_default_server_uuid: "{{ item.value.preferred_server_uuid if 'preferred_server_uuid' in item.value else (users_configs_servers | dict2items)[loop_index % (users_configs_servers | length)].key }}"
-
-- name: Render redirect configs
-  template:
-    src: redirect.json.j2
-    dest: "{{ users_configs_static_root_local }}/{{ item.key }}.json"
-  with_items: "{{ users_configs_users | dict2items }}"
-  vars:
-    users_configs_user_uuid: "{{ item.key }}"
+  include_tasks: render_users_configs.yml

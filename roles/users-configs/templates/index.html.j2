@@ -13,11 +13,11 @@
             const hash = window.location.hash;
 
             if (hash) {
-                const url= "/" + hash.slice(1) + ".json";
+                const url= "/" + hash.slice(1) + "/{{ users_configs_urls_map_filename }}";
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
-                        const redirectUrl = data["{{ instruction_url_field_name }}"];
+                        const redirectUrl = data["{{ user_configs_instruction_url_field_name }}"];
                         if (redirectUrl) {
                             redirect(redirectUrl);
                         } else {
