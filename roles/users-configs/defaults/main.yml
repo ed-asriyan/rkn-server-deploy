@@ -4,6 +4,9 @@ users_configs_default_redirect:
 # users as described in /users-example.yml
 users_configs_users:
 
+# files with redirect url
+users_configs_configs:
+
 # servers object as described in /servers-example.yml
 users_configs_servers:
 

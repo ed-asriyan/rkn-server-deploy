@@ -1,7 +1,4 @@
 {
-    {% set instruction_url = '/' + users_configs_instruction_filename + '#' + users_configs_user_uuid %}
-    "{{ user_configs_instruction_url_field_name }}": "{{ instruction_url }}",
-    "instruction_url": "{{ instruction_url }}",
-    "xray_client_config_url": "/{{ users_configs_user_uuid }}/{{ user_configs_client_xray_config_filename }}",
-    "hiddify_url": "/{{ users_configs_user_uuid }}/{{ user_configs_hiddify_filename }}"
+    "xray_client_config_url": "/{{ users_configs_config_uuid }}/{{ user_configs_client_xray_config_filename }}",
+    "hiddify_url": "/{{ users_configs_config_uuid }}/{{ user_configs_hiddify_filename }}"
 }

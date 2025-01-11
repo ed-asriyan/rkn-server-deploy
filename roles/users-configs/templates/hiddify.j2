@@ -8,6 +8,6 @@
 {% set server_index = loop.index %}
 
 {% for sni, fingerprint in users_configs_server.supported_snis | product(users_configs_server.fingerprints) %}
-vless://{{ users_configs_user_uuid }}@{{ users_configs_server.host }}:{{ users_configs_server.port }}?type=tcp&security=reality&pbk={{ users_configs_server.public_key }}&fp={{ fingerprint }}&sni={{ sni }}&spx=%2F&flow={{ users_configs_server.flow }}#{{ server_index }}.{{ loop.index }}.%20{{ users_configs_server.name | urlencode }}
+vless://{{ users_configs_config_uuid }}@{{ users_configs_server.host }}:{{ users_configs_server.port }}?type=tcp&security=reality&pbk={{ users_configs_server.public_key }}&fp={{ fingerprint }}&sni={{ sni }}&spx=%2F&flow={{ users_configs_server.flow }}#{{ server_index }}.{{ loop.index }}.%20{{ users_configs_server.name | urlencode }}
 {% endfor %}
 {% endfor %}

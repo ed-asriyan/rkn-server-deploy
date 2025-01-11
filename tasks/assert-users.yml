@@ -1,7 +1,7 @@
 # required vars:
 # - users
 
-- name: Ensure servers variable is defined correctly
+- name: Ensure users variable is defined correctly
   assert:
     that:
       - item is string

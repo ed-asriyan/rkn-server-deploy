@@ -3,10 +3,10 @@
     that:
       - xray_server_uuid is string
 
-- name: Ensure xray_users is defined correctly
-  include_tasks: tasks/assert-users.yml
+- name: Ensure xray_configs is defined correctly
+  include_tasks: tasks/assert-configs.yml
   vars:
-    users: "{{ xray_users }}"
+    configs: "{{ xray_configs }}"
 
 - name: Ensure xray_server is defined correctly
   include_tasks: tasks/assert-server.yml

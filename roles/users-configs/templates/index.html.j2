@@ -13,7 +13,7 @@
             const hash = window.location.hash;
 
             if (hash) {
-                const url= "/" + hash.slice(1) + "/{{ users_configs_urls_map_filename }}";
+                const url= "/" + hash.slice(1) + ".json";
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {

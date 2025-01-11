@@ -10,6 +10,11 @@
   vars:
     users: "{{ users_configs_users }}"
 
+- name: Ensure users_configs_configs is defined correctly
+  include_tasks: tasks/assert-configs.yml
+  vars:
+    configs: "{{ users_configs_configs }}"
+
 - name: Ensure users_configs_servers is defined correctly
   include_tasks: tasks/assert-servers.yml
   vars:
@@ -40,9 +45,19 @@
     dest: "{{ users_configs_static_root_local }}/robots.txt"
 
 - name: Render configs
+  with_items: "{{ users_configs_configs }}"
+  loop_control:
+    index_var: loop_index
+  vars:
+    users_configs_config_uuid: "{{ item }}"
+  include_tasks: render_configs.yml
+
+- name: Render redirect configs
   with_items: "{{ users_configs_users }}"
   loop_control:
     index_var: loop_index
   vars:
     users_configs_user_uuid: "{{ item }}"
-  include_tasks: render_users_configs.yml
+  template:
+    src: instruction-link.json.j2
+    dest: "{{ users_configs_static_root_local }}/{{ users_configs_user_uuid }}.json"
