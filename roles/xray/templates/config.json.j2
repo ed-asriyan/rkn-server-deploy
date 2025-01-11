@@ -6,11 +6,11 @@
       "protocol": "vless",
       "settings": {
         "clients": [
-          {% for user in xray_users | dict2items %}
+          {% for user in xray_users %}
             {
-              "email": "{{ user.value.name }}",
+              "email": "{{ user }}",
               "flow": "{{ xray_server.flow }}",
-              "id": "{{ user.key }}"
+              "id": "{{ user }}"
             }
             {% if not loop.last %}
               ,

@@ -5,6 +5,6 @@ id_rsa.pub
 config/users-configs.yml
 config/metrics.yml
 config/servers.yml
-config/users.yml
+config/supabase.yml
 config/hosts.yml
 static

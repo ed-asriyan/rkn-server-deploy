@@ -40,9 +40,9 @@
     dest: "{{ users_configs_static_root_local }}/robots.txt"
 
 - name: Render configs
-  with_items: "{{ users_configs_users | dict2items }}"
+  with_items: "{{ users_configs_users }}"
   loop_control:
     index_var: loop_index
   vars:
-    users_configs_user_uuid: "{{ item.key }}"
+    users_configs_user_uuid: "{{ item }}"
   include_tasks: render_users_configs.yml

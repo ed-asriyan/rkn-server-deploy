@@ -4,6 +4,5 @@
 - name: Ensure servers variable is defined correctly
   assert:
     that:
-      - item.value.name is string
-      - item.value.preferred_server_uuid is not defined or item.value.preferred_server_uuid is string
-  with_items: "{{ users | dict2items }}"
+      - item is string
+  with_items: "{{ users }}"

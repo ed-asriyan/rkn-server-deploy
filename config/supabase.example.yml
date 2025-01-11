@@ -1,0 +1,5 @@
+# supabase `service_role` key (`secret` API key)
+config_supabase_api_key:
+
+# supabase project id
+config_supabase_project_id:

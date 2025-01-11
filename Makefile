@@ -11,9 +11,6 @@ hosts_encrypt:
 hosts_decrypt:
 	ansible-vault decrypt $(HOSTS_FILE)
 
-render_users_csv:
-	ansible-playbook $(PLAYBOOK_FILE_USERS_CSV)
-
 render_users_configs:
 	ansible-playbook $(PLAYBOOK_FILE_USERS_CONFIGS)
 

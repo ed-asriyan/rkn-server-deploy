@@ -1,4 +1,0 @@
-username,uuid,instructions link
-{% for user in users_csv_users | dict2items %}
-{{ user.value.name }},{{ user.key }},https://{{ users_csv_domain }}#{{ user.key }}
-{% endfor %}

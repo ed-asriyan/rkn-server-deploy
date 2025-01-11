@@ -58,12 +58,12 @@ jobs:
         run: |
           echo "$SERVERS" > config/servers.yml
 
-      - name: Render USERS secret into config/users.yml
+      - name: Render SUPABASE secret into config/supabase.yml
         env:
-          USERS: ${{ secrets.USERS }}
+          SUPABASE: ${{ secrets.SUPABASE }}
         shell: bash
         run: |
-          echo "$USERS" > config/users.yml
+          echo "$SUPABASE" > config/supabase.yml
 
       - name: Run playbook
         shell: bash

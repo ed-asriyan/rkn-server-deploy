@@ -7,9 +7,14 @@ https://hiddify.com#app
 # Architecture
 ![digram](./diagram.svg)
 
-There are 3 types of componets: **GH Pages**, **metrics** and **proxy**. GH Actions that must be configured for this repository.
+There are 4 componets: **GH Pages**, **[Supabase](https://supabase.com) instance**, **metrics** and **proxy**. GH Actions that must be configured for this repository.
 Metrics should be deployed as a single instance (sharding is not allowed). Proxies could be deployed as many instances as needed,
 each instance should have dedicated IP address and DNS record (if exists). All hosts should be Debian hosts with public IPs.
+
+# [Supabase](https://supabase.com)
+Stores list of user configs. Users may generate new user configs (my means of HTML website). Deploymemnt fetch records from there
+to render configs for xrays and other components. _The repository with Supabas is not open-source at the moment. It will becore
+open-source later_.
 
 ## GH Pages
 Serves static content:
@@ -91,11 +96,6 @@ The following GitHub secrets are required for CD:
 ### Deploy proxies & metrics on production
 ```commandline
 make deploy_proxies deploy_metrics
-```
-
-### Generate user list table
-```commandline
-make -e DOMAIN=<domain where GH pages are deployed> render_users_csv
 ```
 
 ### Generate UUID for a new user
