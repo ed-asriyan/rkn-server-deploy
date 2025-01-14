@@ -27,6 +27,26 @@ config_servers:
     supported_snis:
       - example.com
       - www.example.com
+    prometheus_metrics:
+      # port where prometheus metrics endpoints should be exposed
+      port:
+      # self-signed cert and keys SSL
+      # generate with `openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 3650 -nodes -subj "/CN=<ip or domain value>" -addext "subjectAltName=<IP or DNS>:<ip or domain value>"`
+      tls:
+        certificate: |
+            -----BEGIN CERTIFICATE-----
+            ....
+            -----END CERTIFICATE-----
+        key: |
+            -----BEGIN PRIVATE KEY-----
+            ....
+            -----END PRIVATE KEY-----
+      # there are two APIs: for xray metrics and node_exporter metrics
+      xray:
+        # URL path (any string starting with /)
+        url_path: /some-random-string1
+      node_exporter:
+        url_path: /some-random-string2
 
   # second server (for instance)
   server2-uuid:
@@ -56,3 +76,17 @@ config_servers:
     supported_snis:
       -
       -
+    prometheus_metrics:
+      # port where prometheus metrics endpoints should be exposed
+      port:
+      # self-signed cert and keys SSL
+      # generate with `openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 3650 -nodes -subj "/CN=<ip or domain value>" -addext "subjectAltName=<IP or DNS>:<ip or domain value>"`
+      tls:
+        certificate:
+        key:
+      # there are two APIs: for xray metrics and node_exporter metrics
+      xray:
+        # URL path (any string starting with /)
+        url_path:
+      node_exporter:
+        url_path:

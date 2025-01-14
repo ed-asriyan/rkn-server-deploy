@@ -3,6 +3,11 @@ repos:
     rev: v4.4.0
     hooks:
       - id: detect-private-key
+        exclude: |
+          (?x)(
+            ^config/metrics.example.yml|
+            ^config/servers.example.yml$
+          )
       - id: check-added-large-files
       - id: check-yaml
         args: [--unsafe]

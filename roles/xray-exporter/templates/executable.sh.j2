@@ -15,7 +15,7 @@ generate_metrics() {
 
   # Parse JSON and generate Prometheus metrics
   metrics=$(echo "$json" | jq -r '
-    .stats.user | to_entries[] | 
+    .stats.user | to_entries[] |
     [
       "# HELP downlink Bytes transferred by the proxy, per access key",
       "# TYPE downlink counter",
