@@ -1,5 +1,8 @@
 # supabase `service_role` key (`secret` API key)
-config_supabase_api_key:
+config_supabase_secret_api_key:
 
-# supabase project id
-config_supabase_project_id:
+# supabase `public`key (`publishable` API key)
+config_supabase_public_api_key:
+
+# supabase project url (without `rest/v1/`)
+config_supabase_project_url:
