@@ -84,6 +84,7 @@
     files:
       - "{{ xray_config_file_name }}"
       - "{{ xray_downloads[arch.stdout].directory }}"
+      - "{{ xray_error_log_file_name }}"
 
 - name: Render systemd service config
   template:

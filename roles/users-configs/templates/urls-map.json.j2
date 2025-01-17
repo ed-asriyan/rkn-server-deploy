@@ -1,4 +1,5 @@
 {
-    "xray_client_config_url": "/{{ users_configs_config_uuid }}/{{ user_configs_client_xray_config_filename }}",
-    "hiddify_url": "/{{ users_configs_config_uuid }}/{{ user_configs_hiddify_filename }}"
+    "xray_client_config_url": "{{ users_configs_base_url }}/{{ users_configs_config_uuid }}/{{ user_configs_client_xray_config_filename }}",
+    "hiddify_url": "{{ users_configs_base_url }}/{{ users_configs_config_uuid }}/{{ user_configs_hiddify_filename }}",
+    "sock5_docker": "{{ users_configs_base_url }}/{{ users_configs_config_uuid }}/{{ users_configs_socks5_docker_filename }}"
 }

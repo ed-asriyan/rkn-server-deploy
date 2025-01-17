@@ -6,3 +6,6 @@ config_users_title:
 
 # support url. see https://hiddify.com/app/URL-Scheme
 config_users_support_url:
+
+# url where frontman is hosted
+config_users_base_url:
