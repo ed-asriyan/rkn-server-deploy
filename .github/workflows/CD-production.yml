@@ -10,11 +10,6 @@ on:
       - master
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 jobs:
   deploy-proxies:
     name: Deploy on production
@@ -24,11 +19,7 @@ jobs:
         task:
           - deploy_metrics
           - deploy_proxies
+          - deploy_frontman
     with:
       tasks: ${{ matrix.task }}
-    secrets: inherit
-
-  deploy-frontman:
-    name: Deploy on production
-    uses: ./.github/workflows/CD-production-frontman.yml
     secrets: inherit

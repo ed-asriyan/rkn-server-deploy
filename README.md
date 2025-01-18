@@ -7,7 +7,7 @@ https://hiddify.com#app
 # Architecture
 ![digram](./diagram.svg)
 
-There are 4 componets: **GH Pages**, **[Supabase](https://supabase.com) instance**, **metrics** and **proxy**. GH Actions that must be configured for this repository.
+There are 4 componets: **Cloudflare Pages**, **[Supabase](https://supabase.com) instance**, **metrics** and **proxy**. GH Actions that must be configured for this repository.
 Metrics should be deployed as a single instance (sharding is not allowed). Proxies could be deployed as many instances as needed,
 each instance should have dedicated IP address and DNS record (if exists). All hosts should be Debian hosts with public IPs.
 
@@ -16,7 +16,7 @@ Stores list of user configs. Users may generate new user configs (my means of HT
 to render configs for xrays and other components. _The repository with Supabas is not open-source at the moment. It will becore
 open-source later_.
 
-## GH Pages
+## Cloudflare Pages
 Serves static content:
 * static html pages with installation instructions which is being developed in a separate repository:
 [xray-server-frontend](https://github.com/ed-asriyan/xray-server-frontend). The user is provided with a private instruction link
@@ -26,7 +26,7 @@ ShadowSocks client each time before connecting to a ShadowSocks server
 * personal vless [subscription files](https://hiddify.com/app/URL-Scheme) for each client, which is used by Hiddify to refresh
 list of available servers
 
-Playbook: [users-configs.yml](./users-configs.yml). It just renders files locally, the should be uploaded got GitHub Pages using
+Playbook: [frontman.yml](./frontman.yml). It just renders files locally, the should be uploaded got Cloudflare Pages using
 Actions.
 
 ## Metrics

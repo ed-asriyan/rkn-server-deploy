@@ -1,0 +1,29 @@
+# where redirect to if user opened index page without paramneters
+frontman_default_redirect:
+
+# users as described in /users-example.yml
+frontman_users:
+
+# files with redirect url
+frontman_configs:
+
+# servers object as described in /servers-example.yml
+frontman_servers:
+
+# relative path of directory where static content should be stored
+frontman_static_directory_filename:
+
+# title users should we when open hiddify
+frontman_title:
+
+# url where frontman is hosted
+frontman_base_url:
+
+# clouflare pages project name
+frontman_cloudflare_project_name:
+
+# cloudflare account id
+frontman_cloudflare_account_id:
+
+# cloudflare api token with Account -> Cloudflare Pages -> Write permissions. create at https://dash.cloudflare.com/profile/api-tokens
+frontman_cloudflare_api_token:

@@ -1,0 +1,81 @@
+- name: Ensure required variables are defined
+  assert:
+    that:
+      - frontman_default_redirect is string
+      - frontman_title is string
+      - frontman_cloudflare_project_name is string
+      - frontman_cloudflare_account_id is string
+      - frontman_cloudflare_api_token is string
+
+- name: Ensure frontman_users is defined correctly
+  include_tasks: tasks/assert-users.yml
+  vars:
+    users: "{{ frontman_users }}"
+
+- name: Ensure frontman_configs is defined correctly
+  include_tasks: tasks/assert-configs.yml
+  vars:
+    configs: "{{ frontman_configs }}"
+
+- name: Ensure frontman_servers is defined correctly
+  include_tasks: tasks/assert-servers.yml
+  vars:
+    servers: "{{ frontman_servers }}"
+
+- set_fact:
+    frontman_static_root_local: "./{{ frontman_static_directory_filename }}"
+    frontman_frontend_name: "{{ lookup('community.general.random_string', length=32, special=False) }}"
+
+- name: Create static directory locally
+  file:
+    path: "{{ frontman_static_root_local }}"
+    state: directory
+
+- name: Render index.html
+  template:
+    src: index.html.j2
+    dest: "{{ frontman_static_root_local }}/index.html"
+
+- name: Create frontend directory locally
+  file:
+    path: "{{ frontman_static_root_local }}/{{ frontman_frontend_name }}"
+    state: directory
+
+- name: Render frontend.html
+  get_url:
+    url: "{{ frontman_frontend_html_url }}"
+    dest: "{{ frontman_static_root_local }}/{{ frontman_frontend_name }}/index.html"
+
+- name: Render frontend config
+  template:
+    src: frontend-config.json.j2
+    dest: "{{ frontman_static_root_local }}/{{ frontman_frontend_name }}/config.json"
+
+- name: Copy robots.txt
+  copy:
+    src: robots.txt
+    dest: "{{ frontman_static_root_local }}/robots.txt"
+
+- name: Render configs
+  with_items: "{{ frontman_configs }}"
+  loop_control:
+    index_var: loop_index
+  vars:
+    frontman_config_uuid: "{{ item }}"
+  include_tasks: render_configs.yml
+
+- name: Render redirect configs
+  with_items: "{{ frontman_users }}"
+  loop_control:
+    index_var: loop_index
+  vars:
+    frontman_user_uuid: "{{ item }}"
+  template:
+    src: frontend-link.json.j2
+    dest: "{{ frontman_static_root_local }}/{{ frontman_user_uuid }}.json"
+
+- name: Upload static files to Cloudflare Pages
+  command: "npx wrangler pages deploy {{ frontman_static_root_local }} --project-name={{ frontman_cloudflare_project_name }}  --branch main"
+  environment:
+    CLOUDFLARE_ACCOUNT_ID: "{{ frontman_cloudflare_account_id }}"
+    CLOUDFLARE_API_TOKEN: "{{ frontman_cloudflare_api_token }}"

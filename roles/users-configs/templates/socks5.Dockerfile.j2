@@ -1,3 +1,0 @@
-FROM teddysun/xray:latest
-RUN apk add --no-cache curl
-CMD curl {{ users_configs_base_url }}/{{ users_configs_config_uuid }}/{{ user_configs_client_xray_config_filename }} > /etc/xray/config.json && xray run -c /etc/xray/config.json

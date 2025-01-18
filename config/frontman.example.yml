@@ -1,0 +1,17 @@
+# where redirect to if user opened index page without valid parameters
+config_frontman_default_redirect:
+
+# title users should we when open hiddify
+config_users_title:
+
+# url where frontman is hosted
+config_users_base_url:
+
+# clouflare pages project name
+config_frontman_cloudflare_project_name:
+
+# cloudflare account id
+config_frontman_cloudflare_account_id:
+
+# cloudflare api token with Account -> Cloudflare Pages -> Write permissions. create at https://dash.cloudflare.com/profile/api-tokens
+config_frontman_cloudflare_api_token:

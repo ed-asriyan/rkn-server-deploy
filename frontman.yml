@@ -2,7 +2,7 @@
     - localhost
   no_log: true
   vars_files:
-    - ./config/users-configs.yml
+    - ./config/frontman.yml
     - ./config/servers.yml
     - ./config/supabase.yml
   pre_tasks:
@@ -36,13 +36,15 @@
       set_fact:
         config_local_users: "{{ supabase_users_response.json | map(attribute='child_uuid') | list }}"
   roles:
-    - role: users-configs
+    - role: frontman
       vars:
-        users_configs_default_redirect: "{{ config_users_configs_default_redirect }}"
-        users_configs_servers: "{{ config_servers }}"
-        users_configs_configs: "{{ config_local_configs }}"
-        users_configs_users: "{{ config_local_users }}"
-        users_configs_static_directory_filename: static
-        users_configs_title: "{{ config_users_title }}"
-        users_configs_support_url: "{{ config_users_support_url }}"
-        users_configs_base_url: "{{ config_users_base_url }}"
+        frontman_default_redirect: "{{ config_frontman_default_redirect }}"
+        frontman_servers: "{{ config_servers }}"
+        frontman_configs: "{{ config_local_configs }}"
+        frontman_users: "{{ config_local_users }}"
+        frontman_static_directory_filename: static
+        frontman_title: "{{ config_users_title }}"
+        frontman_base_url: "{{ config_users_base_url }}"
+        frontman_cloudflare_project_name: "{{ config_frontman_cloudflare_project_name }}"
+        frontman_cloudflare_account_id: "{{ config_frontman_cloudflare_account_id }}"
+        frontman_cloudflare_api_token: "{{ config_frontman_cloudflare_api_token }}"

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script>
         const redirect = function (url) {
-            window.location.href = url || "{{ users_configs_default_redirect }}";
+            window.location.href = url || "{{ frontman_default_redirect }}";
         };
 
         window.onload = function () {
@@ -17,7 +17,7 @@
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
-                        const redirectUrl = data["{{ user_configs_instruction_url_field_name }}"];
+                        const redirectUrl = data["{{ frontman_instruction_url_field_name }}"];
                         if (redirectUrl) {
                             redirect(redirectUrl);
                         } else {

@@ -1,0 +1,12 @@
+#profile-title: {{ frontman_title }}
+#profile-update-interval: 1
+
+{% for server_item in frontman_servers | dict2items %}
+{% set frontman_server_uuid = server_item.key %}
+{% set frontman_server = server_item.value %}
+{% set server_index = loop.index %}
+
+{% for sni, fingerprint in frontman_server.supported_snis | product(frontman_server.fingerprints) %}
+vless://{{ frontman_config_uuid }}@{{ frontman_server.host }}:{{ frontman_server.port }}?type=tcp&security=reality&pbk={{ frontman_server.public_key }}&fp={{ fingerprint }}&sni={{ sni }}&spx=%2F&flow={{ frontman_server.flow }}#{{ server_index }}.{{ loop.index }}.%20{{ frontman_server.name | urlencode }}
+{% endfor %}
+{% endfor %}

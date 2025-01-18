@@ -2,7 +2,8 @@ vault.txt
 users.csv
 id_rsa
 id_rsa.pub
-config/users-configs.yml
+known_hosts
+config/frontman.yml
 config/metrics.yml
 config/servers.yml
 config/supabase.yml

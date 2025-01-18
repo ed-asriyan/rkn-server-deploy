@@ -16,39 +16,39 @@
     }
   ],
   "outbounds": [
-    {% for server_item in users_configs_servers | dict2items %}
-      {% set users_configs_server_uuid = server_item.key %}
-      {% set users_configs_server = server_item.value %}
+    {% for server_item in frontman_servers | dict2items %}
+      {% set frontman_server_uuid = server_item.key %}
+      {% set frontman_server = server_item.value %}
       {% set server_index = loop.index %}
 
-      {% for sni, fingerprint in users_configs_server.supported_snis | product(users_configs_server.fingerprints) %}
+      {% for sni, fingerprint in frontman_server.supported_snis | product(frontman_server.fingerprints) %}
         {
             "protocol": "vless",
             "sendThrough": "0.0.0.0",
             "settings": {
                 "vnext": [
                   {
-                    "address": "{{ users_configs_server.host }}",
-                    "port": {{ users_configs_server.port }},
+                    "address": "{{ frontman_server.host }}",
+                    "port": {{ frontman_server.port }},
                     "users": [
                       {
-                        "id": "{{ users_configs_config_uuid }}",
+                        "id": "{{ frontman_config_uuid }}",
                         "encryption": "none",
-                        "flow": "{{ users_configs_server.flow }}",
+                        "flow": "{{ frontman_server.flow }}",
                         "level": 0
                       }
                     ]
                   }
                 ]
             },
-            "tag": "outbound-vless-{{ server_index }}-{{ loop.index }}-{{ users_configs_server.name | urlencode }}",
+            "tag": "outbound-vless-{{ server_index }}-{{ loop.index }}-{{ frontman_server.name | urlencode }}",
             "streamSettings": {
                 "network": "tcp",
                 "security": "reality",
                 "realitySettings": {
                     "fingerprint": "{{ fingerprint }}",
                     "serverName": "{{ sni }}",
-                    "publicKey": "{{ users_configs_server.public_key }}",
+                    "publicKey": "{{ frontman_server.public_key }}",
                     "spiderX": "/&",
                     "shortId": ""
                 }

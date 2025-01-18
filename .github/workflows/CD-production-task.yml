@@ -65,6 +65,13 @@ jobs:
         run: |
           echo "$SUPABASE" > config/supabase.yml
 
+      - name: Render FRONTMAN secret into config/frontman.yml
+        env:
+          FRONTMAN: ${{ secrets.FRONTMAN }}
+        shell: bash
+        run: |
+          echo "$FRONTMAN" > config/frontman.yml
+
       - name: Run playbook
         shell: bash
         run: make ${{ inputs.tasks }}
