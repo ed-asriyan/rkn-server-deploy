@@ -1,7 +1,7 @@
 - name: Fetch users UUIDs from Supabase
   delegate_to: localhost
   uri:
-    url: "{{ config_supabase_project_url }}/rest/v1/users?select=child_uuid"
+    url: "{{ config_supabase_project_url }}/rest/v1/users_all?select=uuid"
     method: GET
     headers:
       apikey: "{{ config_supabase_secret_api_key }}"
@@ -11,4 +11,4 @@
 - name: Set user UUIDs fact
   delegate_to: localhost
   set_fact:
-    config_local_users: "{{ supabase_users_response.json | map(attribute='child_uuid') | list }}"
+    config_local_users: "{{ supabase_users_response.json | map(attribute='uuid') | list }}"
