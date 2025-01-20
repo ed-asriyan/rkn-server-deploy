@@ -7,3 +7,5 @@ frontman_hiddify_filename: hiddify
 frontman_client_xray_config_socks5_filename: client-xray-config-socks5.json
 frontman_client_xray_config_tproxy_filename: client-xray-config-tproxy.json
 frontman_socks5_docker_filename: socks5.Dockerfile
+
+frontman_connectivity_check_url: https://cp.cloudflare.com
