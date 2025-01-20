@@ -1,0 +1,120 @@
+{
+  "inbounds": [
+    {
+      "tag": "all-in",
+      "port": 1083,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "network": "tcp,udp",
+        "followRedirect": true
+      },
+      "streamSettings": {
+        "sockopt": {
+          "tproxy": "tproxy"
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {% for server_item in frontman_servers | dict2items %}
+      {% set frontman_server_uuid = server_item.key %}
+      {% set frontman_server = server_item.value %}
+      {% set server_index = loop.index %}
+
+      {% for sni, fingerprint in frontman_server.supported_snis | product(frontman_server.fingerprints) %}
+        {
+            "protocol": "vless",
+            "sendThrough": "0.0.0.0",
+            "settings": {
+                "vnext": [
+                  {
+                    "address": "{{ frontman_server.host }}",
+                    "port": {{ frontman_server.port }},
+                    "users": [
+                      {
+                        "id": "{{ frontman_config_uuid }}",
+                        "encryption": "none",
+                        "flow": "{{ frontman_server.flow }}",
+                        "level": 0
+                      }
+                    ]
+                  }
+                ]
+            },
+            "tag": "outbound-vless-{{ server_index }}-{{ loop.index }}-{{ frontman_server.name | urlencode }}",
+            "streamSettings": {
+                "network": "tcp",
+                "security": "reality",
+                "realitySettings": {
+                    "fingerprint": "{{ fingerprint }}",
+                    "serverName": "{{ sni }}",
+                    "publicKey": "{{ frontman_server.public_key }}",
+                    "spiderX": "/&",
+                    "shortId": ""
+                }
+            }
+        },
+      {% endfor %}
+    {% endfor %}
+    {
+      "tag": "outbound-freedom",
+      "protocol": "freedom"
+    }
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "domainMatcher": "hybrid",
+    "rules": [
+      {
+        "inboundTag": [
+          "inbound"
+        ],
+        "outboundTag": "outbound-freedom",
+        "domain": [
+          "geosite:category-ru",
+          "geosite:microsoft"
+        ]
+      },
+      {
+        "inboundTag": [
+          "inbound"
+        ],
+        "outboundTag": "outbound-freedom",
+        "ip": [
+          "geoip:private",
+          "geoip:ru"
+        ]
+      },
+      {
+        "inboundTag": [
+          "inbound"
+        ],
+        "balancerTag": "balancer"
+      }
+    ],
+    "balancers": [
+      {
+        "tag": "balancer",
+        "selector": [
+          "outbound-vless"
+        ],
+        "strategy": {
+          "type": "leastLoad",
+          "settings": {}
+        }
+      }
+    ]
+  },
+  "burstObservatory": {
+    "subjectSelector":[
+      "outbound"
+    ],
+    "pingConfig": {
+      "destination": "https://connectivitycheck.gstatic.com/generate_204",
+      "connectivity": "",
+      "interval": "1h",
+      "sampling": 3,
+      "timeout": "30s"
+    }
+  }
+}

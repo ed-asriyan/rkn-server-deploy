@@ -4,5 +4,6 @@ frontman_frontend_html_url: https://github.com/ed-asriyan/xray-server-frontend/r
 
 frontman_urls_map_filename: urls-map.json
 frontman_hiddify_filename: hiddify
-frontman_client_xray_config_filename: client-xray-config.json
+frontman_client_xray_config_socks5_filename: client-xray-config-socks5.json
+frontman_client_xray_config_tproxy_filename: client-xray-config-tproxy.json
 frontman_socks5_docker_filename: socks5.Dockerfile

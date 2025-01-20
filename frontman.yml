@@ -6,35 +6,11 @@
     - ./config/servers.yml
     - ./config/supabase.yml
   pre_tasks:
-    - name: Fetch configs UUIDs from Supabase
-      delegate_to: localhost
-      uri:
-        url: "{{ config_supabase_project_url }}/rest/v1/configs?select=uuid"
-        method: GET
-        headers:
-          apikey: "{{ config_supabase_secret_api_key }}"
-          Authorization: "Bearer {{ config_supabase_secret_api_key }}"
-      register: supabase_configs_response
+    - name: Ensure frontman_users is defined correctly
+      include_tasks: tasks/supabase-fetch-configs.yml
 
-    - name: Set user UUIDs fact
-      delegate_to: localhost
-      set_fact:
-        config_local_configs: "{{ supabase_configs_response.json | map(attribute='uuid') | list }}"
-
-    - name: Fetch users UUIDs from Supabase
-      delegate_to: localhost
-      uri:
-        url: "{{ config_supabase_project_url }}/rest/v1/users?select=child_uuid"
-        method: GET
-        headers:
-          apikey: "{{ config_supabase_secret_api_key }}"
-          Authorization: "Bearer {{ config_supabase_secret_api_key }}"
-      register: supabase_users_response
-
-    - name: Set user UUIDs fact
-      delegate_to: localhost
-      set_fact:
-        config_local_users: "{{ supabase_users_response.json | map(attribute='child_uuid') | list }}"
+    - name: Ensure frontman_users is defined correctly
+      include_tasks: tasks/supabase-fetch-users.yml
   roles:
     - role: frontman
       vars:

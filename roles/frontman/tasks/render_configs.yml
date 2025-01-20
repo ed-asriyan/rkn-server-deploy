@@ -14,10 +14,15 @@
     src: hiddify.j2
     dest: "{{ frontman_static_root_local }}/{{ frontman_config_uuid }}/index.html"
 
-- name: Render xray-client config
+- name: Render xray-client-socks5 config
   template:
-    src: client-xray-config.json.j2
-    dest: "{{ frontman_static_root_local }}/{{ frontman_config_uuid }}/{{ frontman_client_xray_config_filename }}"
+    src: client-xray-config-socks5.json.j2
+    dest: "{{ frontman_static_root_local }}/{{ frontman_config_uuid }}/{{ frontman_client_xray_config_socks5_filename }}"
+
+- name: Render xray-client-tproxy config
+  template:
+    src: client-xray-config-tproxy.json.j2
+    dest: "{{ frontman_static_root_local }}/{{ frontman_config_uuid }}/{{ frontman_client_xray_config_tproxy_filename }}"
 
 - name: Render sock5.Dockerfile
   template:
