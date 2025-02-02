@@ -105,16 +105,12 @@
       }
     ]
   },
-  "burstObservatory": {
+  "observatory": {
     "subjectSelector":[
       "outbound"
     ],
-    "pingConfig": {
-      "destination": "{{ frontman_connectivity_check_url }}",
-      "connectivity": "",
-      "interval": "1h",
-      "sampling": 3,
-      "timeout": "30s"
-    }
+    "probeUrl": "{{ frontman_connectivity_check_url }}",
+    "probeInterval": "{{ frontman_connectivity_check_interval }}",
+    "enableConcurrency": false
   }
 }

@@ -9,3 +9,5 @@ frontman_client_xray_config_tproxy_filename: client-xray-config-tproxy.json
 frontman_socks5_docker_filename: socks5.Dockerfile
 
 frontman_connectivity_check_url: https://cp.cloudflare.com
+frontman_connectivity_check_interval: 10m
+frontman_connectivity_check_timeout: 30s
