@@ -13,11 +13,13 @@
             const hash = window.location.hash;
 
             if (hash) {
-                const url= "/" + hash.slice(1) + ".json";
+                const params = new URLSearchParams(hash.slice(1));
+                const uuid = params.get('uuid') || hash.slice(1);
+                const url = "/" + uuid + ".json";
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
-                        const redirectUrl = data["{{ frontman_instruction_url_field_name }}"];
+                        const redirectUrl = data["{{ frontman_instruction_url_field_name }}"] + window.location.hash;
                         if (redirectUrl) {
                             redirect(redirectUrl);
                         } else {
