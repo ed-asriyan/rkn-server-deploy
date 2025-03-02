@@ -10,16 +10,18 @@
         };
 
         window.onload = function () {
-            const hash = window.location.hash;
+            const hash = window.location.hash || window.location.pathname.slice(1) || localStorage.getItem('hash');
 
             if (hash) {
-                const params = new URLSearchParams(hash.slice(1));
+                localStorage.setItem('hash', hash);
+                const url = new URL(`${window.location.origin}/${window.location.hash.substring(1)}`);
+                const params = new URLSearchParams(url.search);
                 const uuid = params.get('uuid') || hash.slice(1);
-                const url = "/" + uuid + ".json";
-                fetch(url)
+                const redirectUrl = "/" + uuid + ".json";
+                fetch(redirectUrl)
                     .then(response => response.json())
                     .then(data => {
-                        const redirectUrl = data["{{ frontman_instruction_url_field_name }}"] + window.location.hash;
+                        const redirectUrl = data["{{ frontman_instruction_url_field_name }}"];
                         if (redirectUrl) {
                             redirect(redirectUrl);
                         } else {

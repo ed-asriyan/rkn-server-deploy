@@ -1,5 +1,7 @@
 #profile-title: {{ frontman_title }}
 #profile-update-interval: 1
+#profile-web-page-url: {{ frontman_base_url }}
+#subscription-userinfo: expire=never
 
 {% for server_item in frontman_servers | dict2items %}
 {% set frontman_server_uuid = server_item.key %}
