@@ -24,7 +24,6 @@
 
 - set_fact:
     frontman_static_root_local: "./{{ frontman_static_directory_filename }}"
-    frontman_frontend_name: "{{ lookup('community.general.random_string', length=32, special=False) }}"
 
 - name: Create static directory locally
   file:
@@ -35,21 +34,6 @@
   template:
     src: index.html.j2
     dest: "{{ frontman_static_root_local }}/index.html"
-
-- name: Create frontend directory locally
-  file:
-    path: "{{ frontman_static_root_local }}/{{ frontman_frontend_name }}"
-    state: directory
-
-- name: Render frontend.html
-  get_url:
-    url: "{{ frontman_frontend_html_url }}"
-    dest: "{{ frontman_static_root_local }}/{{ frontman_frontend_name }}/index.html"
-
-- name: Render frontend config
-  template:
-    src: frontend-config.json.j2
-    dest: "{{ frontman_static_root_local }}/{{ frontman_frontend_name }}/config.json"
 
 - name: Copy robots.txt
   copy:

@@ -17,8 +17,8 @@
                 const url = new URL(`${window.location.origin}/${window.location.hash.substring(1)}`);
                 const params = new URLSearchParams(url.search);
                 const uuid = params.get('uuid') || hash.slice(1);
-                const redirectUrl = "/" + uuid + ".json";
-                fetch(redirectUrl)
+                const configUrl = "/" + uuid + ".json";
+                fetch(configUrl)
                     .then(response => response.json())
                     .then(data => {
                         const redirectUrl = data["{{ frontman_instruction_url_field_name }}"];

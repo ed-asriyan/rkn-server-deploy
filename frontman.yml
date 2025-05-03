@@ -21,6 +21,7 @@
         frontman_static_directory_filename: static
         frontman_title: "{{ config_users_title }}"
         frontman_base_url: "{{ config_users_base_url }}"
+        frontman_my_origin: "{{ config_frontman_my_origin }}"
         frontman_cloudflare_project_name: "{{ config_frontman_cloudflare_project_name }}"
         frontman_cloudflare_account_id: "{{ config_frontman_cloudflare_account_id }}"
         frontman_cloudflare_api_token: "{{ config_frontman_cloudflare_api_token }}"

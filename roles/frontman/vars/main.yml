@@ -1,7 +1,5 @@
 frontman_instruction_url_field_name: admin_login_url
 
-frontman_frontend_html_url: https://github.com/ed-asriyan/xray-server-frontend/releases/latest/download/index.html
-
 frontman_urls_map_filename: urls-map.json
 frontman_hiddify_filename: hiddify
 frontman_client_xray_config_socks5_filename: client-xray-config-socks5.json

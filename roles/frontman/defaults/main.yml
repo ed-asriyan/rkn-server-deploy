@@ -27,3 +27,6 @@ frontman_cloudflare_account_id:
 
 # cloudflare api token with Account -> Cloudflare Pages -> Write permissions. create at https://dash.cloudflare.com/profile/api-tokens
 frontman_cloudflare_api_token:
+
+# url origin of personal portal
+frontman_my_origin:
