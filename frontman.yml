@@ -14,7 +14,6 @@
   roles:
     - role: frontman
       vars:
-        frontman_default_redirect: "{{ config_frontman_default_redirect }}"
         frontman_servers: "{{ config_servers }}"
         frontman_configs: "{{ config_local_configs }}"
         frontman_users: "{{ config_local_users }}"

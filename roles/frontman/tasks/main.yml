@@ -1,7 +1,6 @@
 - name: Ensure required variables are defined
   assert:
     that:
-      - frontman_default_redirect is string
       - frontman_title is string
       - frontman_cloudflare_project_name is string
       - frontman_cloudflare_account_id is string

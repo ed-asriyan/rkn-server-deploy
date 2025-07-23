@@ -1,14 +1,38 @@
 <!DOCTYPE html>
 <html style="background-color: gray; display: flex; justify-content: center;">
 <head>
-    <title>Redirect Page</title>
+    <title>Forbidden</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            color: #333;
+            text-align: center;
+            padding: 50px;
+        }
+        .container {
+            background-color: #fff;
+            max-width: 600px;
+            margin: auto;
+            padding: 40px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            color: #c0392b;
+        }
+        p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .note {
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
     <script>
-        const redirect = function (url) {
-            window.location.href = url || "{{ frontman_default_redirect }}";
-        };
-
         window.onload = function () {
             const hash = window.location.hash || window.location.pathname.slice(1) || localStorage.getItem('hash');
 
@@ -24,18 +48,18 @@
                         const redirectUrl = data["{{ frontman_instruction_url_field_name }}"];
                         if (redirectUrl) {
                             redirect(redirectUrl);
-                        } else {
-                            redirect();
                         }
-                    })
-                    .catch(() => redirect());
-            } else {
-                redirect();
+                    });
             }
         };
     </script>
 </head>
 <body>
-Redirecting...
+  <div class="container">
+    <h1>Доступ ограничен</h1>
+    <p>К сожалению, данный сервис недоступен на территории Российской Федерации.</p>
+    <p>Ограничение введено во избежание нарушения федерального законодательства Российской Федерации.</p>
+    <p class="note">Если вы считаете, что это ошибка, пожалуйста, свяжитесь с нашей службой поддержки.</p>
+  </div>
 </body>
 </html>

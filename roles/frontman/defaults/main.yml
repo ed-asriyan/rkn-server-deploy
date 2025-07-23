@@ -1,6 +1,3 @@
-# where redirect to if user opened index page without paramneters
-frontman_default_redirect:
-
 # users as described in /users-example.yml
 frontman_users:
 

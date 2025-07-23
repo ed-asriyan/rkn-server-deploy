@@ -1,6 +1,3 @@
-# where redirect to if user opened index page without valid parameters
-config_frontman_default_redirect:
-
 # title users should we when open hiddify
 config_users_title:
 
