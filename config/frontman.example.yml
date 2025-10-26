@@ -4,14 +4,12 @@ config_users_title:
 # url where frontman is hosted
 config_users_base_url:
 
-# clouflare pages project name
-config_frontman_cloudflare_project_name:
+# github repository URL for pages deployment (e.g., https://github.com/owner/repo.git)
+# make sure the repository is PRIVATE and has GitHub Pages enabled
+config_frontman_github_repo_url:
 
-# cloudflare account id
-config_frontman_cloudflare_account_id:
-
-# cloudflare api token with Account -> Cloudflare Pages -> Write permissions. create at https://dash.cloudflare.com/profile/api-tokens
-config_frontman_cloudflare_api_token:
+# github branch to deploy to (usually 'main' or 'gh-pages')
+config_frontman_github_branch:
 
 # url origin of personal portal
 config_frontman_my_origin:

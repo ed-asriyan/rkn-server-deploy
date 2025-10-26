@@ -2,9 +2,8 @@
   assert:
     that:
       - frontman_title is string
-      - frontman_cloudflare_project_name is string
-      - frontman_cloudflare_account_id is string
-      - frontman_cloudflare_api_token is string
+      - frontman_github_repo_url is string
+      - frontman_github_branch is string
 
 - name: Ensure frontman_users is defined correctly
   include_tasks: tasks/assert-users.yml
@@ -23,6 +22,29 @@
 
 - set_fact:
     frontman_static_root_local: "./{{ frontman_static_directory_filename }}"
+
+- name: Initialize Git repository for GitHub Pages
+  git:
+    repo: "{{ frontman_github_repo_url }}"
+    dest: "{{ frontman_static_root_local }}"
+    version: "{{ frontman_github_branch }}"
+    force: yes
+  environment:
+    GIT_TERMINAL_PROMPT: "0"
+
+- name: Configure Git user for GitHub Pages deployment
+  git_config:
+    repo: "{{ frontman_static_root_local }}"
+    scope: local
+    name: user.name
+    value: "Ansible Deployment"
+
+- name: Configure Git email for GitHub Pages deployment
+  git_config:
+    repo: "{{ frontman_static_root_local }}"
+    scope: local
+    name: user.email
+    value: "deployment@ansible.local"
 
 - name: Create static directory locally
   file:
@@ -57,8 +79,17 @@
     src: frontend-link.json.j2
     dest: "{{ frontman_static_root_local }}/{{ frontman_user_uuid }}.json"
 
-- name: Upload static files to Cloudflare Pages
-  command: "npx wrangler pages deploy {{ frontman_static_root_local }} --project-name={{ frontman_cloudflare_project_name }}  --branch main"
-  environment:
-    CLOUDFLARE_ACCOUNT_ID: "{{ frontman_cloudflare_account_id }}"
-    CLOUDFLARE_API_TOKEN: "{{ frontman_cloudflare_api_token }}"
+- name: Add all files to Git
+  command: "git add ."
+  args:
+    chdir: "{{ frontman_static_root_local }}"
+
+- name: Commit changes to Git
+  command: "git commit -m 'Deploy static files for GitHub Pages - {{ ansible_date_time.iso8601 }}'"
+  args:
+    chdir: "{{ frontman_static_root_local }}"
+
+- name: Push to GitHub repository
+  command: "git push origin"
+  args:
+    chdir: "{{ frontman_static_root_local }}"
