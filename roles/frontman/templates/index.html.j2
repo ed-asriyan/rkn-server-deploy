@@ -47,7 +47,7 @@
                     .then(data => {
                         const redirectUrl = data["{{ frontman_instruction_url_field_name }}"];
                         if (redirectUrl) {
-                            redirect(redirectUrl);
+                            window.location.href = redirectUrl;
                         }
                     });
             }
