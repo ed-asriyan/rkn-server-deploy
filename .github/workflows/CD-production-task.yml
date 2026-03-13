@@ -132,11 +132,12 @@ jobs:
           echo "Created provider id: $PROVIDER_ID"
 
           # Bulk insert all URIs
+          jq -Rn --arg id "$PROVIDER_ID" '[inputs | {"uri": ., "vpn_provider_id": $id}]' < uris.txt > /tmp/vpns_payload.json
           curl -sf -X POST \
             "$SUPABASE_URL/rest/v1/vpns" \
             "${AUTH_HEADERS[@]}" \
             -H "Content-Type: application/json" \
-            --data "$(jq -Rn --arg id "$PROVIDER_ID" '[inputs | {"uri": ., "vpn_provider_id": $id}]' < uris.txt)"
+            --data @/tmp/vpns_payload.json
 
       - name: Invoke shuffle_vpn edge function
         shell: bash
