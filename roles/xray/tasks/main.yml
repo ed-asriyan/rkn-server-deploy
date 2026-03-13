@@ -1,17 +1,12 @@
 - name: Ensure required variables are defined
   assert:
     that:
-      - xray_server_uuid is string
-
-- name: Ensure xray_configs is defined correctly
-  include_tasks: tasks/assert-configs.yml
-  vars:
-    configs: "{{ xray_configs }}"
-
-- name: Ensure xray_server is defined correctly
-  include_tasks: tasks/assert-server.yml
-  vars:
-    server: "{{ xray_server }}"
+      - xray_host is string
+      - xray_port is number
+      - xray_fingerprint is string
+      - xray_fallback_proxy_target is string
+      - xray_sni is string
+      - xray_number_of_users is number
 
 - name: Install the prerequisites
   with_items:
@@ -68,6 +63,21 @@
     owner: "{{ xray_user }}"
     mode: "700"
 
+- include_tasks: tasks/generate-uuids.yml
+  vars:
+    count: "{{ xray_number_of_users }}"
+    uuids_var: xray_uuids
+
+- name: Generate x25519 keypair
+  command: "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}/{{ xray_executable_name }} x25519"
+  register: x25519_output
+  changed_when: false
+
+- name: Set xray key facts
+  set_fact:
+    xray_private_key: "{{ x25519_output.stdout | regex_search('Private key: (.+)', '\\1') | first }}"
+    xray_public_key: "{{ x25519_output.stdout | regex_search('Public key: (.+)', '\\1') | first }}"
+
 - name: Render xray config
   template:
     src: config.json.j2
@@ -76,6 +86,12 @@
     owner: "{{ xray_user }}"
     mode: "600"
   register: config
+
+- name: Render xray configs locally
+  delegate_to: localhost
+  template:
+    src: configs.txt.j2
+    dest: "uris.txt"
 
 - name: Remove unexpected files in home
   include_tasks: tasks/remove-unexpected-files.yml

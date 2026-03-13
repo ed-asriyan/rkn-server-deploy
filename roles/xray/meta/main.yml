@@ -1,2 +1,2 @@
 dependencies:
-  # - role: kernel-optimizations
+  - role: kernel-optimizations

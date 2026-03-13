@@ -1,16 +1,16 @@
 {
   "inbounds": [
     {
-      "listen": {% if xray_server.inbound_ip %}"{{ xray_server.inbound_ip }}"{% else %}null{% endif %},
-      "port": {{ xray_server.port }},
+      "listen": null,
+      "port": {{ xray_port }},
       "protocol": "vless",
       "settings": {
         "clients": [
-          {% for config in xray_configs %}
+          {% for uuid in xray_uuids %}
             {
-              "email": "{{ config }}",
-              "flow": "{{ xray_server.flow }}",
-              "id": "{{ config }}"
+              "email": "{{ uuid }}",
+              "flow": "xtls-rprx-vision",
+              "id": "{{ uuid }}"
             }
             {% if not loop.last %}
               ,
@@ -23,19 +23,12 @@
       "streamSettings": {
         "network": "tcp",
         "realitySettings": {
-          "dest": "{{ xray_server.fallback_proxy_target }}:443",
+          "dest": "{{ xray_fallback_proxy_target }}:443",
           "maxClient": "",
           "maxTimediff": 0,
           "minClient": "",
-          "privateKey": "{{ xray_server.private_key }}",
-          "serverNames": [
-            {% for sni in xray_server.supported_snis %}
-              "{{ sni }}"
-              {% if not loop.last %}
-                ,
-              {% endif %}
-            {% endfor %}
-          ],
+          "privateKey": "{{ xray_private_key }}",
+          "serverNames": ["{{ xray_sni }}"],
           "shortIds": [""],
           "show": false,
           "xver": 0
@@ -65,23 +58,11 @@
         "refresh": 5,
         "concurrency": 3
       }
-    },
-    {
-      "listen": "127.0.0.1",
-      "port": {{ xray_metrics_port }},
-      "protocol": "dokodemo-door",
-      "settings": {
-        "address": "127.0.0.1"
-      },
-      "tag": "metrics_in"
     }
   ],
   "outbounds": [
     {
       "tag": "direct",
-      {% if xray_server.outbound_ip %}
-        "sendThrough": "{{ xray_server.outbound_ip }}",
-      {% endif %}
       "protocol": "freedom"
     },
     {
@@ -112,18 +93,8 @@
           "geoip:private",
           "geoip:ru"
         ]
-      },
-      {
-        "inboundTag": [
-          "metrics_in"
-        ],
-        "outboundTag": "metrics_out"
       }
     ]
-  },
-
-  "metrics": {
-    "tag": "metrics_out"
   },
 
   "log": {

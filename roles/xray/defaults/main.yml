@@ -1,6 +1,14 @@
-# list of UUIDs of configs
-xray_configs:
-# one(!) server item as secribed in /servers-example.yml
-xray_server:
-# port on localhost to export expvars on
-xray_metrics_port:
+# public name for the server
+xray_name:
+# public domain or IP where xray should be deployed (if ssh and xray are on the same IP, it should be equal to config_servers[hosts_server_uuid].host value)
+xray_host:
+# Port on which xray will listen on the server (should match the value in config/ports.yml)
+xray_port:
+# reality fingerprint for the server (output of `ssh-keyscan -t rsa <server_ip>` command)
+xray_fingerprint:
+# Fallback proxy target for xray
+xray_fallback_proxy_target:
+# SNI value for xray
+xray_sni:
+# Number of users to generate configs for (should match the value in config/ports.yml)
+xray_number_of_users:

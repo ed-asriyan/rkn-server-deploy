@@ -1,21 +1,45 @@
-name: CD | Production specific Make tasks
+name: CD | Deploy server
 
 on:
   workflow_dispatch:
     inputs:
-      tasks:
-        description: 'Make tasks to run'
+      name:
+        description: 'Public server name'
         required: true
         type: string
-  workflow_call:
-    inputs:
-      tasks:
-        description: 'Make tasks to run'
+      host:
+        description: Public domain or IP where xray should be deployed (if ssh and xray are on the same IP, it should be equal to config_servers[hosts_server_uuid].host value)
         required: true
         type: string
+      port:
+        description: 'Port where xray should be deployed (should match the value in config/ports.yml)'
+        required: true
+        type: string
+        default: '443'
+      fingerprint:
+        description: reality fingerprint for the server (output of `ssh-keyscan -t rsa <server_ip>` command)
+        required: true
+        type: choice
+        options:
+          - chrome
+          - safari
+          - ios
+      fallback_proxy_target:
+        description: 'Fallback proxy target for xray'
+        required: true
+        type: string
+      sni:
+        description: 'SNI value for xray'
+        required: true
+        type: string
+      number_of_users:
+        description: 'Number of users to generate configs for (should match the value in config/ports.yml)'
+        required: true
+        type: string
+        default: '1024'
 
 jobs:
-  deploy-frontman:
+  deploy-server:
     name: Deploy on production
     runs-on: ubuntu-latest
 
@@ -37,46 +61,88 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > id_rsa && chmod 600 id_rsa
 
-      - name: Render HOSTS secret into config/hosts.yml
-        env:
-          HOSTS: ${{ secrets.HOSTS }}
-        shell: bash
-        run: |
-          echo "$HOSTS" > config/hosts.yml
-
-      - name: Render METRICS secret into config/metrics.yml
-        env:
-          METRICS: ${{ secrets.METRICS }}
-        shell: bash
-        run: |
-          echo "$METRICS" > config/metrics.yml
-
-      - name: Render SERVERS secret into config/servers.yml
-        env:
-          SERVERS: ${{ secrets.SERVERS }}
-        shell: bash
-        run: |
-          echo "$SERVERS" > config/servers.yml
-
-      - name: Render SUPABASE secret into config/supabase.yml
-        env:
-          SUPABASE: ${{ secrets.SUPABASE }}
-        shell: bash
-        run: |
-          echo "$SUPABASE" > config/supabase.yml
-
-      - name: Render FRONTMAN secret into config/frontman.yml
-        env:
-          FRONTMAN: ${{ secrets.FRONTMAN }}
-        shell: bash
-        run: |
-          echo "$FRONTMAN" > config/frontman.yml
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.7.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-    
+
       - name: Run playbook
         shell: bash
-        run: make ${{ inputs.tasks }}
+        env:
+          NAME: ${{ inputs.name }}
+          HOST: ${{ inputs.host }}
+          PORT: ${{ inputs.port }}
+          FINGERPRINT: ${{ inputs.fingerprint }}
+          FALLBACK_PROXY_TARGET: ${{ inputs.fallback_proxy_target }}
+          SNI: ${{ inputs.sni }}
+          NUMBER_OF_USERS: ${{ inputs.number_of_users }}
+        run: |
+          ansible-playbook proxies.yml \
+            --extra-vars name="${NAME}" \
+            --extra-vars host="${HOST}" \
+            --extra-vars port="${PORT}" \
+            --extra-vars fingerprint="${FINGERPRINT}" \
+            --extra-vars fallback_proxy_target="${FALLBACK_PROXY_TARGET}" \
+            --extra-vars sni="${SNI}" \
+            --extra-vars number_of_users="${NUMBER_OF_USERS}"
+
+      - name: Upload URIs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uris-${{ inputs.name }}
+          path: uris.txt
+
+      - name: Sync VPN provider and URIs to Supabase
+        shell: bash
+        env:
+          NAME: ${{ inputs.name }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AUTH_HEADERS=(
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY"
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
+          )
+
+          ENCODED_NAME=$(jq -rn --arg v "$NAME" '$v | @uri')
+
+          # Delete existing provider with this name (non-fatal: ok if none exists)
+          curl -sf -X DELETE \
+            "$SUPABASE_URL/rest/v1/vpn_providers?name=eq.$ENCODED_NAME" \
+            "${AUTH_HEADERS[@]}" || true
+
+          # Create new provider and capture its id
+          CREATE_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/rest/v1/vpn_providers" \
+            "${AUTH_HEADERS[@]}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=representation" \
+            --data "$(jq -n --arg name "$NAME" '{"name": $name}')")
+          CREATE_BODY=$(echo "$CREATE_RESPONSE" | head -n -1)
+          CREATE_STATUS=$(echo "$CREATE_RESPONSE" | tail -n 1)
+          echo "Create status: $CREATE_STATUS"
+          echo "Create response: $CREATE_BODY"
+          if [[ "$CREATE_STATUS" -lt 200 || "$CREATE_STATUS" -ge 300 ]]; then
+            echo "ERROR: Failed to create vpn_provider (HTTP $CREATE_STATUS)"
+            exit 1
+          fi
+
+          PROVIDER_ID=$(echo "$CREATE_BODY" | jq -r '.[0].id')
+          echo "Created provider id: $PROVIDER_ID"
+
+          # Bulk insert all URIs
+          curl -sf -X POST \
+            "$SUPABASE_URL/rest/v1/vpns" \
+            "${AUTH_HEADERS[@]}" \
+            -H "Content-Type: application/json" \
+            --data "$(jq -Rn --arg id "$PROVIDER_ID" '[inputs | {"uri": ., "vpn_provider_id": $id}]' < uris.txt)"
+
+      - name: Invoke shuffle_vpn edge function
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -sf -X POST \
+            "$SUPABASE_URL/functions/v1/shuffle_vpns" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"

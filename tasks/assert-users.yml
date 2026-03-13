@@ -1,8 +1,0 @@
-# required vars:
-# - users
-
-- name: Ensure users variable is defined correctly
-  assert:
-    that:
-      - item is string
-  with_items: "{{ users }}"

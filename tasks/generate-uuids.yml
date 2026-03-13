@@ -1,0 +1,11 @@
+# required vars:
+# - count
+# - uuids_var (name of the variable to store the result in, e.g. "my_uuids")
+
+- name: Generate {{ count }} UUIDs
+  command: python3 -c "import uuid; print('\n'.join(str(uuid.uuid4()) for _ in range({{ count | int }})))"
+  register: uuid_results
+
+- name: Set UUIDs fact
+  set_fact:
+    "{{ uuids_var }}": "{{ uuid_results.stdout_lines }}"

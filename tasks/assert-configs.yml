@@ -1,8 +1,0 @@
-# required vars:
-# - configs
-
-- name: Ensure configs variable is defined correctly
-  assert:
-    that:
-      - item is string
-  with_items: "{{ configs }}"

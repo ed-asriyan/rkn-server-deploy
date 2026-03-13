@@ -1,35 +1,23 @@
-- hosts:
-    - proxies
-  no_log: true
-  vars_files:
-    - ./config/supabase.yml
-    - ./config/servers.yml
-  vars:
-    # do not worry. these ports are local
-    config_local_xray_metrics_port: 8081
-    config_local_node_exporter_metrics_port: 8082
-    config_local_xray_exporter_metrics_port: 8080
-  pre_tasks:
-    - name: Ensure frontman_users is defined correctly
-      include_tasks: tasks/supabase-fetch-configs.yml
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Register target host
+      add_host:
+        name: target
+        ansible_host: "{{ host }}"
+        ansible_user: root
+        ansible_ssh_private_key_file: id_rsa
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+- hosts: target
+  gather_facts: true
   roles:
     - role: xray
       vars:
-        xray_server_uuid: "{{ hosts_server_uuid }}"
-        xray_server: "{{ config_servers[xray_server_uuid] }}"
-        xray_configs: "{{ config_local_configs }}"
-        xray_metrics_port: "{{ config_local_xray_metrics_port }}"
-        xray_supabase_api_key: "{{ supabase_api_key }}"
-        xray_supabase_project_id: "{{ supabase_project_id }}"
-    - role: node-exporter
-      vars:
-        node_exporter_port: "{{ config_local_node_exporter_metrics_port }}"
-    - role: xray-exporter
-      vars:
-        xray_exporter_port: "{{ config_local_xray_exporter_metrics_port }}"
-        xray_exporter_fetch_port: "{{ config_local_xray_metrics_port }}"
-    - role: metrics-exporter
-      vars:
-        metrics_exporter_server: "{{ config_servers[hosts_server_uuid] }}"
-        metrics_exporter_node_exporter_metrics_port: "{{ config_local_node_exporter_metrics_port }}"
-        metrics_exporter_xray_metrics_port: "{{ config_local_xray_exporter_metrics_port }}"
+        xray_name: "{{ name }}"
+        xray_host: "{{ host }}"
+        xray_port: "{{ port | int }}"
+        xray_fingerprint: "{{ fingerprint }}"
+        xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
+        xray_sni: "{{ sni }}"
+        xray_number_of_users: "{{ number_of_users | int }}"
