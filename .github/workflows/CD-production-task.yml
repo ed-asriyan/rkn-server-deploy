@@ -46,21 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Save known_hosts file
-        env:
-          KNOWN_HOSTS: ${{ secrets.KNOWN_HOSTS }}
-        shell: bash
-        run: |
-          mkdir -p ~/.ssh
-          echo "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
-
-      - name: Save id_rsa file
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        shell: bash
-        run: |
-          echo "$SSH_PRIVATE_KEY" > id_rsa && chmod 600 id_rsa
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.7.0
         with:
