@@ -72,12 +72,6 @@ jobs:
             --arg number_of_users "$NUMBER_OF_USERS" \
             '{name: $name, host: $host, port: $port, fingerprint: $fingerprint, fallback_proxy_target: $fallback_proxy_target, sni: $sni, number_of_users: $number_of_users}')"
 
-      - name: Upload URIs artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: uris-${{ inputs.name }}
-          path: uris.txt
-
       - name: Sync VPN provider and URIs to Supabase
         shell: bash
         env:
