@@ -12,6 +12,8 @@
 - hosts: target
   gather_facts: true
   roles:
+    - name: vnstat
+
     - role: xray
       vars:
         xray_name: "{{ name }}"

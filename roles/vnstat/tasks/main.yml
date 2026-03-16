@@ -1,0 +1,10 @@
+- name: Install vnstat
+  package:
+    name: vnstat
+    state: present
+
+- name: Enable and start vnstat service
+  service:
+    name: vnstat
+    state: started
+    enabled: yes
