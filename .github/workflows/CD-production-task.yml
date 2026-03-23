@@ -17,7 +17,7 @@ on:
         type: string
         default: '443'
       fingerprint:
-        description: reality fingerprint for the server (output of `ssh-keyscan -t rsa <server_ip>` command)
+        description: reality fingerprint for the server
         required: true
         type: choice
         options:
@@ -25,7 +25,7 @@ on:
           - safari
           - ios
       fallback_proxy_target:
-        description: 'Fallback proxy target for xray'
+        description: 'Fallback proxy target for xray (with port, e.g. example.com:443)'
         required: true
         type: string
       sni:
