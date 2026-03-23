@@ -44,6 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          repository: ed-asriyan/rkn-server-deploy
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.10.0
