@@ -1,0 +1,78 @@
+name: CD | Deploy server
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        description: 'Public server name'
+        required: true
+        type: string
+      host:
+        description: Public domain or IP where xray should be deployed (if ssh and xray are on the same IP, it should be equal to config_servers[hosts_server_uuid].host value)
+        required: true
+        type: string
+      port:
+        description: 'Port where xray should be deployed (should match the value in config/ports.yml)'
+        required: true
+        type: string
+        default: '443'
+      fingerprint:
+        description: reality fingerprint for the server
+        required: true
+        type: string
+      fallback_proxy_target:
+        description: 'Fallback proxy target for xray (with port, e.g. example.com:443)'
+        required: true
+        type: string
+      sni:
+        description: 'SNI value for xray'
+        required: true
+        type: string
+      number_of_users:
+        description: 'Number of users to generate configs for (should match the value in config/ports.yml)'
+        required: true
+        type: string
+        default: '1024'
+    secrets:
+      SSH_PRIVATE_KEY:
+        description: 'SSH private key for accessing the server under root user (should match the public key added to the server /root/.ssh/authorized_keys)'
+
+jobs:
+  deploy-server:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Run playbook
+        shell: bash
+        env:
+          NAME: ${{ inputs.name }}
+          HOST: ${{ inputs.host }}
+          PORT: ${{ inputs.port }}
+          FINGERPRINT: ${{ inputs.fingerprint }}
+          FALLBACK_PROXY_TARGET: ${{ inputs.fallback_proxy_target }}
+          SNI: ${{ inputs.sni }}
+          NUMBER_OF_USERS: ${{ inputs.number_of_users }}
+        run: |
+          ansible-playbook proxies.yml --extra-vars "$(jq -n \
+            --arg name "$NAME" \
+            --arg host "$HOST" \
+            --arg port "$PORT" \
+            --arg fingerprint "$FINGERPRINT" \
+            --arg fallback_proxy_target "$FALLBACK_PROXY_TARGET" \
+            --arg sni "$SNI" \
+            --arg number_of_users "$NUMBER_OF_USERS" \
+            '{name: $name, host: $host, port: $port, fingerprint: $fingerprint, fallback_proxy_target: $fallback_proxy_target, sni: $sni, number_of_users: $number_of_users}')"
+
+      - name: Upload configs as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: uris.txt
+          path: uris.txt

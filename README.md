@@ -1,55 +1,93 @@
-# Proxy [![CI | pre-commit](https://github.com/ed-asriyan/xray-server/actions/workflows/CI-pre-commit.yml/badge.svg)](https://github.com/ed-asriyan/xray-server/actions/workflows/CI-pre-commit.yml) [![CD | Deploy server](https://github.com/ed-asriyan/xray-server/actions/workflows/CD-production-task.yml/badge.svg)](https://github.com/ed-asriyan/xray-server/actions/workflows/CD-production-task.yml)
-This is deployment for my personal server with [xray](https://xtls.github.io/en/) on board for me and my friends to bypass internet censorship.
+# RKN proxy server deploy [![CI | pre-commit](https://github.com/ed-asriyan/rkn-server-deploy/actions/workflows/CI-pre-commit.yml/badge.svg)](https://github.com/ed-asriyan/rkn-server-deploy/actions/workflows/CI-pre-commit.yml)
 
-## Vless clients that work with this setup
-https://hiddify.com#app
-There are 2 components: **[Supabase](https://supabase.com) instance** and **proxy hosts**. GH Actions are configured to deploy proxy hosts on demand.
+Ansible-based deployment for a Debian server running [Xray](https://xtls.github.io/en/) with VLESS + REALITY.
 
-# [Supabase](https://supabase.com)
-Stores the list of VPN providers and their user URIs. After each deployment the CD workflow upserts the provider record and bulk-inserts all generated URIs, then invokes the `shuffle_vpn` edge function to redistribute them.
+The repository is public so the deployment logic can be versioned and reused, but the actual deployment should be triggered from a separate private GitHub repository. That keeps workflow logs, server details, and generated client URIs private.
 
-Required secrets:
-* `SUPABASE_URL`: Supabase project URL (e.g. `https://xxxx.supabase.co`)
-* `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role API key
+## What this repository does
+- Connects to a target Debian server over SSH as `root`
+- Installs and configures Xray
+- Generates VLESS client URIs into `uris.txt`
+- Uploads `uris.txt` as a GitHub Actions artifact in the caller repository
 
-## Proxy
-As many proxy hosts as needed can be deployed; each one must have its own public IP address and/or DNS record.
-Each proxy host is a Debian linux host with [xray-core](https://github.com/xtls/xray-core) installed (role: `xray`):
-* listens on the configured port using VLESS + REALITY
-* forwards non-VLESS traffic to `fallback_proxy_target`
+## Tested client
+- [Hiddify](https://hiddify.com/#app)
 
-Playbook: [proxies.yml](./proxies.yml)
+## Deploy your own server
+To deploy your own server, call the reusable workflow defined in [.github/workflows/deploy.yml](./.github/workflows/deploy.yml) via `workflow_call` from your private GitHub repository.
 
-### Deploying a proxy
-Trigger the **CD | Deploy server** workflow manually from the GitHub Actions UI and fill in the inputs:
+Do not trigger deployments from this public repository. The workflow produces sensitive output, including:
+- server IP or domain
+- SNI value
+- generated VLESS URIs for end users
 
+Use a **private repository** as the caller so logs and artifacts are visible only to you.
+
+### Requirements
+- A VPS running Debian 12 or Debian 13
+- SSH access as `root`
+- A GitHub private repository to trigger deployments
+- An SSH private key stored as a GitHub Actions secret in that private repository
+
+If your VPS provider supports injecting an SSH public key during server creation, use that. Otherwise, add your public key to `/root/.ssh/authorized_keys` manually.
+
+### Create a private caller repository
+1. Create a new private GitHub repository.
+2. Add this secret to the private repository:
+
+| Secret | Description |
+| --- | --- |
+| `SSH_PRIVATE_KEY` | Private key used by the workflow to connect to the target server over SSH |
+
+3. Create a workflow such as `.github/workflows/deploy-myserver.yml` in the private repository:
+
+```yaml
+name: Deploy my server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ed-asriyan/rkn-server-deploy/.github/workflows/deploy.yml@master
+    with:
+      name: my-server
+      host: 1.2.3.4
+      port: 443
+      fingerprint: chrome
+      fallback_proxy_target: example.com:443
+      sni: example.com
+      number_of_users: 256
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+```
+
+4. Run that workflow from the Actions tab of the private repository.
+5. Download the generated `uris.txt` artifact from the workflow run.
+
+### Workflow inputs
+The reusable workflow accepts these inputs:
 | Input | Description |
-|---|---|
-| `name` | Public server name (used as the provider name in Supabase) |
-| `host` | Public IP or domain of the target server |
-| `port` | Port xray listens on (default: `443`) |
-| `fingerprint` | REALITY fingerprint (`chrome`, `safari`, or `ios`) |
-| `fallback_proxy_target` | Fallback proxy target for non-VLESS traffic |
-| `sni` | SNI value for REALITY |
-| `number_of_users` | Number of user configs to generate (default: `1024`) |
+| --- | --- |
+| `name` | Label added to generated client URIs |
+| `host` | Public IP address or DNS name clients will connect to |
+| `port` | Port exposed by Xray on the target host |
+| `fingerprint` | REALITY client fingerprint value |
+| `fallback_proxy_target` | Upstream host:port for non-VLESS traffic |
+| `sni` | SNI value used by REALITY clients |
+| `number_of_users` | Number of client URIs to generate |
 
-The workflow will:
-1. Run the Ansible playbook to install / update xray on the target host
-2. Upload the generated `uris.txt` as a build artifact
-3. Upsert the provider and its URIs in Supabase
-4. Invoke the `shuffle_vpn` edge function
+### What the workflow does
+1. Checks out this repository.
+2. Starts an SSH agent with the private key from the caller repository.
+3. Runs [proxies.yml](./proxies.yml) against the target host.
+4. Writes generated client URIs to `uris.txt`.
+5. Uploads `uris.txt` as a workflow artifact.
 
-# Development
-This part requires [Ansible](https://www.ansible.com) knowledge. The deployment is tested on and implemented for Debian only.
+## Development
+This section is only for working on this repository itself.
+- Install [pre-commit](https://pre-commit.com/#install).
+- Run `pre-commit install`.
+- Make sure your local SSH key can access a test server before running Ansible manually.
 
-## At the very beginning
-1. Initialize pre-commit hook to prevent secrets from being leaked:
-   1. Install [pre-commit](https://pre-commit.com/#install)
-   2. Run: `pre-commit install`
-2. Add the SSH private key to `id_rsa` in the root of the repository. **Make sure only you can read/write it: `chmod 600 id_rsa`**
-
-## Required GitHub secrets
-* `KNOWN_HOSTS`: contents of `.ssh/known_hosts` for your servers
-* `SSH_PRIVATE_KEY`: SSH private key to access the servers
-* `SUPABASE_URL`: Supabase project URL
-* `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role API key
+The playbook must work for Debian.
