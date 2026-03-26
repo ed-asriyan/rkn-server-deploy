@@ -75,8 +75,8 @@
 
 - name: Set xray key facts
   set_fact:
-    xray_private_key: "{{ x25519_output.stdout | regex_search('Private key: (.+)', '\\1') | first }}"
-    xray_public_key: "{{ x25519_output.stdout | regex_search('Public key: (.+)', '\\1') | first }}"
+    xray_private_key: "{{ x25519_output.stdout | regex_search('PrivateKey: (.+)', '\\1') | first }}"
+    xray_public_key: "{{ x25519_output.stdout | regex_search('Password: (.+)', '\\1') | first }}"
 
 - name: Render xray config
   template:
