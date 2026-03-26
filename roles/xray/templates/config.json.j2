@@ -24,9 +24,7 @@
         "network": "tcp",
         "realitySettings": {
           "dest": "{{ xray_fallback_proxy_target }}",
-          "maxClient": "",
           "maxTimediff": 0,
-          "minClient": "",
           "privateKey": "{{ xray_private_key }}",
           "serverNames": ["{{ xray_sni }}"],
           "shortIds": [""],
@@ -43,15 +41,7 @@
       },
       "tag": "inbound-vless",
       "sniffing": {
-        "enabled": false,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic",
-          "fakedns"
-        ],
-        "metadataOnly": false,
-        "routeOnly": false
+        "enabled": false
       },
       "allocate": {
         "strategy": "always",
@@ -103,36 +93,5 @@
     "error": "/home/{{ xray_user }}/{{ xray_error_log_file_name }}",
     "loglevel": "warning",
     "maskAddress": ""
-  },
-
-  "dns": null,
-
-  "transport": null,
-
-  "policy": {
-    "levels": {
-      "0": {
-        "statsUserDownlink": true,
-        "statsUserUplink": true
-      }
-    },
-    "system": {
-      "statsInboundDownlink": true,
-      "statsInboundUplink": true,
-      "statsOutboundDownlink": true,
-      "statsOutboundUplink": true
-    }
-  },
-
-  "api": null,
-
-  "stats": {},
-
-  "reverse": null,
-
-  "fakedns": null,
-
-  "observatory": null,
-
-  "burstObservatory": null
+  }
 }
