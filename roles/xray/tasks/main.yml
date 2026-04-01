@@ -6,6 +6,8 @@
       - xray_fingerprint is string
       - xray_fallback_proxy_target is string
       - xray_sni is string
+      - xray_private_key is string
+      - xray_public_key is string
       - xray_number_of_users is number
 
 - name: Install the prerequisites
@@ -67,16 +69,6 @@
   vars:
     count: "{{ xray_number_of_users }}"
     uuids_var: xray_uuids
-
-- name: Generate x25519 keypair
-  command: "/home/{{ xray_user }}/{{ xray_downloads[arch.stdout].directory }}/{{ xray_executable_name }} x25519"
-  register: x25519_output
-  changed_when: false
-
-- name: Set xray key facts
-  set_fact:
-    xray_private_key: "{{ x25519_output.stdout | regex_search('PrivateKey: (.+)', '\\1') | first }}"
-    xray_public_key: "{{ x25519_output.stdout | regex_search('Password: (.+)', '\\1') | first }}"
 
 - name: Render xray config
   template:

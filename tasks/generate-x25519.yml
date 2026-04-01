@@ -1,0 +1,38 @@
+# required vars:
+# - private_key_var (name of the variable to store the private key in, e.g. "my_private_key")
+# - public_key_var (name of the variable to store the public key in, e.g
+
+- name: Generate Keypair
+  changed_when: false
+  shell: |
+    python3 -c "
+    import base64
+    from cryptography.hazmat.primitives.asymmetric import x25519
+    from cryptography.hazmat.primitives import serialization
+
+    # Generate standard keypair (handles Curve25519 clamping internally)
+    priv = x25519.X25519PrivateKey.generate()
+    pub = priv.public_key()
+
+    # Extract raw 32-byte arrays
+    raw_priv = priv.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    raw_pub = pub.public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw
+    )
+
+    # Encode to Base64URL and strip padding to match Xray spec
+    b64u = lambda b: base64.urlsafe_b64encode(b).decode().rstrip('=')
+    
+    print(f'{b64u(raw_priv)}\n{b64u(raw_pub)}')
+    "
+  register: xray_keys
+
+- name: Store keys as facts
+  set_fact:
+    "{{ private_key_var }}": "{{ xray_keys.stdout_lines[0] }}"
+    "{{ public_key_var }}": "{{ xray_keys.stdout_lines[1] }}"

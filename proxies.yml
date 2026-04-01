@@ -9,6 +9,12 @@
         ansible_ssh_private_key_file: id_rsa
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 
+    - name: Generate x25519 keypair for Xray
+      include_tasks: tasks/generate-x25519.yml
+      vars:
+        private_key_var: xray_private_key
+        public_key_var: xray_public_key
+
 - hosts: target
   gather_facts: true
   roles:
@@ -23,3 +29,5 @@
         xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
         xray_sni: "{{ sni }}"
         xray_number_of_users: "{{ number_of_users | int }}"
+        xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
+        xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
