@@ -37,3 +37,17 @@
         xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
         xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
         xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
+
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: urls-render
+      vars:
+        xray_name: "{{ name }}"
+        xray_host: "{{ host }}"
+        xray_port: "{{ port | int }}"
+        xray_fingerprint: "{{ fingerprint }}"
+        xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
+        xray_sni: "{{ sni }}"
+        xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
+        xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"

@@ -1,0 +1,21 @@
+- name: Ensure required variables are defined
+  assert:
+    that:
+      - xray_host is string
+      - xray_port is number
+      - xray_fingerprint is string
+      - xray_fallback_proxy_target is string
+      - xray_sni is string
+      - xray_public_key is string
+      - xray_uuids is iterable
+
+- name: Ensure xray_uuids is a list
+  loop: "{{ xray_uuids }}"
+  assert:
+    that:
+      - item is string
+
+- name: Render xray configs locally
+  template:
+    src: configs.txt.j2
+    dest: "uris.txt"

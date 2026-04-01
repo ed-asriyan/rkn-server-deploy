@@ -80,12 +80,6 @@
     mode: "600"
   register: config
 
-- name: Render xray configs locally
-  delegate_to: localhost
-  template:
-    src: configs.txt.j2
-    dest: "uris.txt"
-
 - name: Remove unexpected files in home
   include_tasks: tasks/remove-unexpected-files.yml
   vars:
