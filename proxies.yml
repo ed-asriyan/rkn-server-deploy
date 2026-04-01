@@ -15,6 +15,12 @@
         private_key_var: xray_private_key
         public_key_var: xray_public_key
 
+    - name: Generate UUIDs for Xray users
+      include_tasks: tasks/generate-uuids.yml
+      vars:
+        count: "{{ number_of_users | int }}"
+        uuids_var: xray_uuids
+
 - hosts: target
   gather_facts: true
   roles:
@@ -28,6 +34,6 @@
         xray_fingerprint: "{{ fingerprint }}"
         xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
         xray_sni: "{{ sni }}"
-        xray_number_of_users: "{{ number_of_users | int }}"
+        xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
         xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
         xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"

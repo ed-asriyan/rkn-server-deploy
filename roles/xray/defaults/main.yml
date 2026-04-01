@@ -10,9 +10,9 @@ xray_fingerprint:
 xray_fallback_proxy_target:
 # SNI value for xray
 xray_sni:
-# Number of users to generate configs for (should match the value in config/ports.yml)
-xray_number_of_users:
 # private x25519 key for xray
 xray_private_key:
 # public x25519 key for xray
 xray_public_key:
+# list of uuids for xray users
+xray_uuids:

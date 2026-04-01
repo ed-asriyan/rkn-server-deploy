@@ -8,7 +8,13 @@
       - xray_sni is string
       - xray_private_key is string
       - xray_public_key is string
-      - xray_number_of_users is number
+      - xray_uuids is iterable
+
+- name: Ensure xray_uuids is a list
+  loop: "{{ xray_uuids }}"
+  assert:
+    that:
+      - item is string
 
 - name: Install the prerequisites
   with_items:
@@ -64,11 +70,6 @@
     group: "{{ xray_user }}"
     owner: "{{ xray_user }}"
     mode: "700"
-
-- include_tasks: tasks/generate-uuids.yml
-  vars:
-    count: "{{ xray_number_of_users }}"
-    uuids_var: xray_uuids
 
 - name: Render xray config
   template:
