@@ -63,15 +63,14 @@ jobs:
           SNI: ${{ inputs.sni }}
           NUMBER_OF_USERS: ${{ inputs.number_of_users }}
         run: |
-          ansible-playbook proxies.yml --extra-vars "$(jq -n \
-            --arg name "$NAME" \
-            --arg host "$HOST" \
-            --arg port "$PORT" \
-            --arg fingerprint "$FINGERPRINT" \
-            --arg fallback_proxy_target "$FALLBACK_PROXY_TARGET" \
-            --arg sni "$SNI" \
-            --arg number_of_users "$NUMBER_OF_USERS" \
-            '{name: $name, host: $host, port: $port, fingerprint: $fingerprint, fallback_proxy_target: $fallback_proxy_target, sni: $sni, number_of_users: $number_of_users}')"
+              ansible-playbook proxies.yml \
+              --extra-vars "name=$NAME" \
+              --extra-vars "host=$HOST" \
+              --extra-vars "port=$PORT" \
+              --extra-vars "fingerprint=$FINGERPRINT" \
+              --extra-vars "fallback_proxy_target=$FALLBACK_PROXY_TARGET" \
+              --extra-vars "sni=$SNI" \
+              --extra-vars "number_of_users=$NUMBER_OF_USERS"
 
       - name: Upload configs as artifact
         uses: actions/upload-artifact@v7
