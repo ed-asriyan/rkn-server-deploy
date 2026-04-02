@@ -10,7 +10,7 @@
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 
     - name: Register hop2 host
-      when: "{{ next_hop_host is defined and next_hop_port is defined }}"
+      when: "next_hop_host is defined and next_hop_host != '' and next_hop_port is defined and next_hop_port != ''"
       add_host:
         name: hop2
         ansible_host: "{{ next_hop_host }}"
