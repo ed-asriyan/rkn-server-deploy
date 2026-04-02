@@ -27,7 +27,7 @@
 
     # Encode to Base64URL and strip padding to match Xray spec
     b64u = lambda b: base64.urlsafe_b64encode(b).decode().rstrip('=')
-    
+
     print(f'{b64u(raw_priv)}\n{b64u(raw_pub)}')
     "
   register: xray_keys
