@@ -61,17 +61,13 @@
               "address": "{{ xray_next_hop_host }}",
               "port": {{ xray_next_hop_port }},
               "users": [
-                {% for uuid in xray_uuids %}
-                  {
-                    "id": "{{ uuid }}",
-                    "email": "{{ uuid }}",
-                    "flow": "xtls-rprx-vision",
-                    "encryption": "none"
-                  }
-                  {% if not loop.last %}
-                    ,
-                  {% endif %}
-                {% endfor %}
+                {% set next_hop_uuid = xray_uuids[0] %}
+                {
+                  "id": "{{ next_hop_uuid }}",
+                  "email": "{{ next_hop_uuid }}",
+                  "flow": "xtls-rprx-vision",
+                  "encryption": "none"
+                }
               ]
             }
           ]
