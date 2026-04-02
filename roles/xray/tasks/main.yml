@@ -15,6 +15,17 @@
   assert:
     that:
       - item is string
+      - item | length > 0
+
+- name: Ensure xray_next_hop values are defined
+  when: "xray_next_hop_host is defined and xray_next_hop_host is not none and xray_next_hop_host | string | length > 0"
+  assert:
+    that:
+      - xray_next_hop_host is string
+      - xray_next_hop_host | length > 0
+      - xray_next_hop_port is number
+      - xray_next_hop_uuid is string
+      - xray_next_hop_uuid | length > 0
 
 - name: Install the prerequisites
   with_items:

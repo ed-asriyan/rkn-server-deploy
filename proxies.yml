@@ -10,7 +10,7 @@
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 
     - name: Register hop2 host
-      when: "next_hop_host is defined and next_hop_host != '' and next_hop_port is defined and next_hop_port != ''"
+      when: next_hop_host is defined and next_hop_host | length > 0 and next_hop_port is defined and next_hop_port | length > 0
       add_host:
         name: hop2
         ansible_host: "{{ next_hop_host }}"
@@ -30,6 +30,13 @@
         count: "{{ number_of_users | int }}"
         uuids_var: xray_uuids
 
+    - name: Generate UUIDs for Xray user for hop2
+      when: next_hop_host is defined and next_hop_host | length > 0 and next_hop_port is defined and next_hop_port | length > 0
+      include_tasks: tasks/generate-uuids.yml
+      vars:
+        count: 1
+        uuids_var: xray_uuids_hop2
+
 - hosts: hop1
   gather_facts: true
   roles:
@@ -46,7 +53,8 @@
         xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
         xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
         xray_next_hop_host: "{{ next_hop_host }}"
-        xray_next_hop_port: "{{ next_hop_port }}"
+        xray_next_hop_port: "{{ next_hop_port | int if next_hop_port is defined else None }}"
+        xray_next_hop_uuid: "{{ hostvars['localhost']['xray_uuids_hop2'][0] if hostvars['localhost']['xray_uuids_hop2'] is defined and hostvars['localhost']['xray_uuids_hop2']|length > 0 else '' }}"
 
 - hosts: hop2
   gather_facts: true
@@ -61,11 +69,13 @@
         xray_fingerprint: "{{ fingerprint }}"
         xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
         xray_sni: "{{ sni }}"
-        xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
+        xray_uuids:
+          - "{{ hostvars['localhost']['xray_uuids_hop2'][0] }}"
         xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
         xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
         xray_next_hop_host: null
         xray_next_hop_port: null
+        xray_next_hop_uuid: null
 
 - hosts: localhost
   gather_facts: false

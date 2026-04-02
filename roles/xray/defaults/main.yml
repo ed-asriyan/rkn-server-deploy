@@ -19,3 +19,5 @@ xray_uuids:
 xray_next_hop_host:
 # next-hop relay port: port on which the next-hop VLESS server listens
 xray_next_hop_port:
+# next-hop relay uuid: uuid of the user on the next-hop VLESS server (should match one of the uuids in xray_uuids list)
+xray_next_hop_uuid:

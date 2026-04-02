@@ -70,7 +70,7 @@ jobs:
           FALLBACK_PROXY_TARGET: ${{ inputs.fallback_proxy_target }}
           SNI: ${{ inputs.sni }}
           NUMBER_OF_USERS: ${{ inputs.number_of_users }}
-          next_hop_host: ${{ inputs.next_hop_host }}
+          NEXT_HOP_HOST: ${{ inputs.next_hop_host }}
           NEXT_HOP_PORT: ${{ inputs.next_hop_port }}
         run: |
               ansible-playbook proxies.yml \
@@ -81,7 +81,7 @@ jobs:
               --extra-vars "fallback_proxy_target=$FALLBACK_PROXY_TARGET" \
               --extra-vars "sni=$SNI" \
               --extra-vars "number_of_users=$NUMBER_OF_USERS" \
-              --extra-vars "next_hop_host=$next_hop_host" \
+              --extra-vars "next_hop_host=$NEXT_HOP_HOST" \
               --extra-vars "next_hop_port=$NEXT_HOP_PORT" \
 
       - name: Upload configs as artifact

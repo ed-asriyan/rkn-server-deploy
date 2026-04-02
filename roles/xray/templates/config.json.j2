@@ -51,7 +51,7 @@
     }
   ],
   "outbounds": [
-    {% if xray_next_hop_host is defined and xray_next_hop_host %}
+    {% if xray_next_hop_host is defined and xray_next_hop_host is not none and xray_next_hop_host | string | length > 0 %}
       {
         "tag": "next-hop",
         "protocol": "vless",
@@ -61,10 +61,9 @@
               "address": "{{ xray_next_hop_host }}",
               "port": {{ xray_next_hop_port }},
               "users": [
-                {% set next_hop_uuid = xray_uuids[0] %}
                 {
-                  "id": "{{ next_hop_uuid }}",
-                  "email": "{{ next_hop_uuid }}",
+                  "id": "{{ xray_next_hop_uuid }}",
+                  "email": "{{ xray_next_hop_uuid }}",
                   "flow": "xtls-rprx-vision",
                   "encryption": "none"
                 }
