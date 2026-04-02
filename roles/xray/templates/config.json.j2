@@ -51,6 +51,44 @@
     }
   ],
   "outbounds": [
+    {% if xray_next_hop_host is defined and xray_next_hop_host %}
+      {
+        "tag": "next-hop",
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "{{ xray_next_hop_host }}",
+              "port": {{ xray_next_hop_port }},
+              "users": [
+                {% for uuid in xray_uuids %}
+                  {
+                    "id": "{{ uuid }}",
+                    "email": "{{ uuid }}",
+                    "flow": "xtls-rprx-vision",
+                    "encryption": "none"
+                  }
+                  {% if not loop.last %}
+                    ,
+                  {% endif %}
+                {% endfor %}
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "tcp",
+          "security": "reality",
+          "realitySettings": {
+            "fingerprint": "{{ xray_fingerprint }}",
+            "serverName": "{{ xray_sni }}",
+            "publicKey": "{{ xray_public_key }}",
+            "shortId": "",
+            "spiderX": ""
+          }
+        }
+      },
+    {% endif %}
     {
       "tag": "direct",
       "protocol": "freedom"

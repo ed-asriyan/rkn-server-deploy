@@ -1,5 +1,3 @@
-# public name for the server
-xray_name:
 # public domain or IP where xray should be deployed (if ssh and xray are on the same IP, it should be equal to config_servers[hosts_server_uuid].host value)
 xray_host:
 # Port on which xray will listen on the server (should match the value in config/ports.yml)
@@ -16,3 +14,8 @@ xray_private_key:
 xray_public_key:
 # list of uuids for xray users
 xray_uuids:
+# next-hop relay: if set, traffic is forwarded to another VLESS server instead of going direct
+# (for use when this server is in a censored country and the next hop is in a free country)
+xray_next_hop_host:
+# next-hop relay port: port on which the next-hop VLESS server listens
+xray_next_hop_port:

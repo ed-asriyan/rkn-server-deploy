@@ -33,6 +33,14 @@ on:
         required: true
         type: string
         default: '1024'
+      next_hop_host:
+        description: 'Next-hop relay IP: if set, traffic is forwarded to another VLESS server instead of going direct (for use when this server is in a censored country and the next hop is in a free country)'
+        required: false
+        type: string
+      next_hop_port:
+        description: 'Next-hop relay port: port on which the next-hop VLESS server listens'
+        required: false
+        type: string
     secrets:
       SSH_PRIVATE_KEY:
         description: 'SSH private key for accessing the server under root user (should match the public key added to the server /root/.ssh/authorized_keys)'
@@ -62,6 +70,8 @@ jobs:
           FALLBACK_PROXY_TARGET: ${{ inputs.fallback_proxy_target }}
           SNI: ${{ inputs.sni }}
           NUMBER_OF_USERS: ${{ inputs.number_of_users }}
+          next_hop_host: ${{ inputs.next_hop_host }}
+          NEXT_HOP_PORT: ${{ inputs.next_hop_port }}
         run: |
               ansible-playbook proxies.yml \
               --extra-vars "name=$NAME" \
@@ -70,7 +80,9 @@ jobs:
               --extra-vars "fingerprint=$FINGERPRINT" \
               --extra-vars "fallback_proxy_target=$FALLBACK_PROXY_TARGET" \
               --extra-vars "sni=$SNI" \
-              --extra-vars "number_of_users=$NUMBER_OF_USERS"
+              --extra-vars "number_of_users=$NUMBER_OF_USERS" \
+              --extra-vars "next_hop_host=$next_hop_host" \
+              --extra-vars "next_hop_port=$NEXT_HOP_PORT" \
 
       - name: Upload configs as artifact
         uses: actions/upload-artifact@v7

@@ -1,10 +1,19 @@
 - hosts: localhost
   gather_facts: false
   tasks:
-    - name: Register target host
+    - name: Register hop1 host
       add_host:
-        name: target
+        name: hop1
         ansible_host: "{{ host }}"
+        ansible_user: root
+        ansible_ssh_private_key_file: id_rsa
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+    - name: Register hop2 host
+      when: "{{ next_hop_host is defined and next_hop_port is defined }}"
+      add_host:
+        name: hop2
+        ansible_host: "{{ next_hop_host }}"
         ansible_user: root
         ansible_ssh_private_key_file: id_rsa
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
@@ -21,14 +30,13 @@
         count: "{{ number_of_users | int }}"
         uuids_var: xray_uuids
 
-- hosts: target
+- hosts: hop1
   gather_facts: true
   roles:
     - name: vnstat
 
     - role: xray
       vars:
-        xray_name: "{{ name }}"
         xray_host: "{{ host }}"
         xray_port: "{{ port | int }}"
         xray_fingerprint: "{{ fingerprint }}"
@@ -37,6 +45,27 @@
         xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
         xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
         xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
+        xray_next_hop_host: "{{ next_hop_host }}"
+        xray_next_hop_port: "{{ next_hop_port }}"
+
+- hosts: hop2
+  gather_facts: true
+  roles:
+    - name: vnstat
+
+    - role: xray
+      vars:
+        xray_name: "{{ name }}"
+        xray_host: "{{ next_hop_host }}"
+        xray_port: "{{ next_hop_port | int }}"
+        xray_fingerprint: "{{ fingerprint }}"
+        xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
+        xray_sni: "{{ sni }}"
+        xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
+        xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
+        xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
+        xray_next_hop_host: null
+        xray_next_hop_port: null
 
 - hosts: localhost
   gather_facts: false
