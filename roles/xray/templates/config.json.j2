@@ -99,24 +99,37 @@
     "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
-        "inboundTag": [
-          "inbound-vless"
-        ],
+        "type": "field",
+        "inboundTag": ["inbound-vless"],
         "outboundTag": "blocked",
-        "domain": [
-          "geosite:category-ru"
-        ]
+        "ip": ["geoip:private"]
       },
       {
-        "inboundTag": [
-          "inbound-vless"
-        ],
+        "type": "field",
+        "inboundTag": ["inbound-vless"],
         "outboundTag": "blocked",
-        "ip": [
-          "geoip:private",
-          "geoip:ru"
-        ]
+        "domain": ["geosite:category-ru"]
+      },
+      {
+        "type": "field",
+        "inboundTag": ["inbound-vless"],
+        "outboundTag": "blocked",
+        "ip": ["geoip:ru"]
       }
+      {% if xray_next_server is not none %}
+        ,
+        {
+          "type": "field",
+          "inboundTag": ["inbound-vless"],
+          "ip": ["::/0"],
+          "outboundTag": "next-hop"
+        },
+        {
+          "type": "field",
+          "inboundTag": ["inbound-vless"],
+          "outboundTag": "next-hop"
+        }
+      {% endif %}
     ]
   },
 
