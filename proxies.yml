@@ -1,92 +1,81 @@
 - hosts: localhost
   gather_facts: false
   tasks:
-    - name: Register hop1 host
+    - name: Register server hosts
+      loop: "{{ servers | dict2items }}"
       add_host:
-        name: hop1
-        ansible_host: "{{ host }}"
+        name: "{{ item.key }}"
+        groups: xray_servers
+        ansible_host: "{{ item.value.host }}"
         ansible_user: root
         ansible_ssh_private_key_file: id_rsa
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+        xray_server_key: "{{ item.key }}"
+        xray_server_config: "{{ item.value }}"
 
-    - name: Register hop2 host
-      when: next_hop_host is defined and next_hop_host | length > 0 and next_hop_port is defined and next_hop_port | length > 0
-      add_host:
-        name: hop2
-        ansible_host: "{{ next_hop_host }}"
-        ansible_user: root
-        ansible_ssh_private_key_file: id_rsa
-        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-
-    - name: Generate x25519 keypair for Xray
+    - name: Generate x25519 keypair for each server
+      loop: "{{ servers | dict2items }}"
       include_tasks: tasks/generate-x25519.yml
       vars:
-        private_key_var: xray_private_key
-        public_key_var: xray_public_key
+        private_key_var: "xray_private_key_{{ item.key }}"
+        public_key_var: "xray_public_key_{{ item.key }}"
+        seed: "{{ seed | default(omit) }}"
+        seed_host: "{{ item.value.host }}"
 
-    - name: Generate UUIDs for Xray users
+    - name: Generate UUIDs for each server
+      loop: "{{ servers | dict2items }}"
       include_tasks: tasks/generate-uuids.yml
       vars:
-        count: "{{ number_of_users | int }}"
-        uuids_var: xray_uuids
+        count: "{{ item.value.number_of_users | int }}"
+        uuids_var: "xray_uuids_{{ item.key }}"
+        seed: "{{ seed | default(omit) }}"
+        seed_host: "{{ item.value.host }}"
 
-    - name: Generate UUIDs for Xray user for hop2
-      when: next_hop_host is defined and next_hop_host | length > 0 and next_hop_port is defined and next_hop_port | length > 0
-      include_tasks: tasks/generate-uuids.yml
-      vars:
-        count: 1
-        uuids_var: xray_uuids_hop2
-
-- hosts: hop1
+- hosts: xray_servers
   gather_facts: true
   roles:
     - name: vnstat
 
     - role: xray
       vars:
-        xray_host: "{{ host }}"
-        xray_port: "{{ port | int }}"
-        xray_fingerprint: "{{ fingerprint }}"
-        xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
-        xray_snis: "{{ snis.split(',') }}"
-        xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
-        xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
-        xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
-        xray_next_hop_host: "{{ next_hop_host }}"
-        xray_next_hop_port: "{{ next_hop_port | int if next_hop_port is defined else None }}"
-        xray_next_hop_uuid: "{{ hostvars['localhost']['xray_uuids_hop2'][0] if hostvars['localhost']['xray_uuids_hop2'] is defined and hostvars['localhost']['xray_uuids_hop2']|length > 0 else '' }}"
-
-- hosts: hop2
-  gather_facts: true
-  roles:
-    - name: vnstat
-
-    - role: xray
-      vars:
-        xray_name: "{{ name }}"
-        xray_host: "{{ next_hop_host }}"
-        xray_port: "{{ next_hop_port | int }}"
-        xray_fingerprint: "{{ fingerprint }}"
-        xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
-        xray_snis: "{{ snis.split(',') }}"
-        xray_uuids:
-          - "{{ hostvars['localhost']['xray_uuids_hop2'][0] }}"
-        xray_private_key: "{{ hostvars['localhost']['xray_private_key'] }}"
-        xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
-        xray_next_hop_host: null
-        xray_next_hop_port: null
-        xray_next_hop_uuid: null
+        xray_server:
+          host: "{{ xray_server_config.host }}"
+          port: "{{ xray_server_config.port | int }}"
+          fingerprint: "{{ xray_server_config.fingerprint }}"
+          fallback_proxy_target: "{{ xray_server_config.fallback_proxy_target }}"
+          snis: "{{ xray_server_config.snis.split(',') }}"
+          uuids: "{{ hostvars['localhost']['xray_uuids_' + xray_server_key] }}"
+          private_key: "{{ hostvars['localhost']['xray_private_key_' + xray_server_key] }}"
+          public_key: "{{ hostvars['localhost']['xray_public_key_' + xray_server_key] }}"
+        xray_next_server: >-
+          {{
+            {
+              'host': servers[pairs[xray_server_key]].host,
+              'port': servers[pairs[xray_server_key]].port | int,
+              'fingerprint': servers[pairs[xray_server_key]].fingerprint,
+              'snis': servers[pairs[xray_server_key]].snis.split(','),
+              'uuids': [hostvars['localhost']['xray_uuids_' + pairs[xray_server_key]][0]],
+              'public_key': hostvars['localhost']['xray_public_key_' + pairs[xray_server_key]],
+            } if xray_server_key in (pairs | default({})) else none
+          }}
 
 - hosts: localhost
   gather_facts: false
-  roles:
-    - role: urls-render
+  tasks:
+    - name: Render URIs for each server
+      loop: "{{ servers | dict2items }}"
+      include_role:
+        name: urls-render
       vars:
-        xray_name: "{{ name }}"
-        xray_host: "{{ host }}"
-        xray_port: "{{ port | int }}"
-        xray_fingerprint: "{{ fingerprint }}"
-        xray_fallback_proxy_target: "{{ fallback_proxy_target }}"
-        xray_snis: "{{ snis.split(',') }}"
-        xray_uuids: "{{ hostvars['localhost']['xray_uuids'] }}"
-        xray_public_key: "{{ hostvars['localhost']['xray_public_key'] }}"
+        xray_name: "{{ item.key }}"
+        xray_host: "{{ item.value.host }}"
+        xray_port: "{{ item.value.port | int }}"
+        xray_fingerprint: "{{ item.value.fingerprint }}"
+        xray_fallback_proxy_target: "{{ item.value.fallback_proxy_target }}"
+        xray_snis: "{{ item.value.snis.split(',') }}"
+        xray_uuids: "{{ hostvars['localhost']['xray_uuids_' + item.key] }}"
+        xray_public_key: "{{ hostvars['localhost']['xray_public_key_' + item.key] }}"
+        uris_dest: "uris_{{ item.key }}.txt"
+
+    - name: Assemble URIs into uris.txt
+      shell: "cat uris_*.txt > uris.txt && rm uris_*.txt"

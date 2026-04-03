@@ -2,11 +2,11 @@
   "inbounds": [
     {
       "listen": null,
-      "port": {{ xray_port }},
+      "port": {{ xray_server.port }},
       "protocol": "vless",
       "settings": {
         "clients": [
-          {% for uuid in xray_uuids %}
+          {% for uuid in xray_server.uuids %}
             {
               "email": "{{ uuid }}",
               "flow": "xtls-rprx-vision",
@@ -23,10 +23,10 @@
       "streamSettings": {
         "network": "tcp",
         "realitySettings": {
-          "dest": "{{ xray_fallback_proxy_target }}",
+          "dest": "{{ xray_server.fallback_proxy_target }}",
           "maxTimediff": 0,
-          "privateKey": "{{ xray_private_key }}",
-          "serverNames": {{ xray_snis | to_json }},
+          "privateKey": "{{ xray_server.private_key }}",
+          "serverNames": {{ xray_server.snis | to_json }},
           "shortIds": [""],
           "show": false,
           "xver": 0
@@ -51,19 +51,19 @@
     }
   ],
   "outbounds": [
-    {% if xray_next_hop_host is defined and xray_next_hop_host is not none and xray_next_hop_host | string | length > 0 %}
+    {% if xray_next_server is not none %}
       {
         "tag": "next-hop",
         "protocol": "vless",
         "settings": {
           "vnext": [
             {
-              "address": "{{ xray_next_hop_host }}",
-              "port": {{ xray_next_hop_port }},
+              "address": "{{ xray_next_server.host }}",
+              "port": {{ xray_next_server.port }},
               "users": [
                 {
-                  "id": "{{ xray_next_hop_uuid }}",
-                  "email": "{{ xray_next_hop_uuid }}",
+                  "id": "{{ xray_next_server.uuids | first }}",
+                  "email": "{{ xray_next_server.uuids | first }}",
                   "flow": "xtls-rprx-vision",
                   "encryption": "none"
                 }
@@ -75,9 +75,9 @@
           "network": "tcp",
           "security": "reality",
           "realitySettings": {
-            "fingerprint": "{{ xray_fingerprint }}",
-            "serverName": "{{ xray_snis | first }}",
-            "publicKey": "{{ xray_public_key }}",
+            "fingerprint": "{{ xray_next_server.fingerprint }}",
+            "serverName": "{{ xray_next_server.snis | first }}",
+            "publicKey": "{{ xray_next_server.public_key }}",
             "shortId": "",
             "spiderX": ""
           }

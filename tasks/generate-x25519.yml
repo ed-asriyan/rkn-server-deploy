@@ -1,17 +1,25 @@
 # required vars:
 # - private_key_var (name of the variable to store the private key in, e.g. "my_private_key")
-# - public_key_var (name of the variable to store the public key in, e.g
+# - public_key_var (name of the variable to store the public key in, e.g. "my_public_key")
+# optional vars:
+# - seed (integer seed for deterministic generation)
+# - seed_host (host string to make output unique per server; required when seed is set)
 
 - name: Generate Keypair
   changed_when: false
   shell: |
     python3 -c "
-    import base64
+    import base64, hashlib
     from cryptography.hazmat.primitives.asymmetric import x25519
     from cryptography.hazmat.primitives import serialization
 
+    {% if seed is defined %}
+    raw_priv_seed = hashlib.sha256(('{{ seed }}:{{ seed_host }}').encode()).digest()
+    priv = x25519.X25519PrivateKey.from_private_bytes(raw_priv_seed)
+    {% else %}
     # Generate standard keypair (handles Curve25519 clamping internally)
     priv = x25519.X25519PrivateKey.generate()
+    {% endif %}
     pub = priv.public_key()
 
     # Extract raw 32-byte arrays

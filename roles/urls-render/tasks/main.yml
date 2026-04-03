@@ -18,4 +18,4 @@
 - name: Render xray configs locally
   template:
     src: configs.txt.j2
-    dest: "uris.txt"
+    dest: "{{ uris_dest }}"

@@ -14,3 +14,5 @@ xray_snis:
 xray_public_key:
 # list of uuids for xray users
 xray_uuids:
+# destination file for rendered URIs
+uris_dest: uris.txt

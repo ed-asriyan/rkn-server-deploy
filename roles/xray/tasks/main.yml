@@ -1,31 +1,35 @@
 - name: Ensure required variables are defined
   assert:
     that:
-      - xray_host is string
-      - xray_port is number
-      - xray_fingerprint is string
-      - xray_fallback_proxy_target is string
-      - xray_snis is iterable
-      - xray_private_key is string
-      - xray_public_key is string
-      - xray_uuids is iterable
+      - xray_server.host is string
+      - xray_server.port is number
+      - xray_server.fingerprint is string
+      - xray_server.fallback_proxy_target is string
+      - xray_server.snis is iterable
+      - xray_server.private_key is string
+      - xray_server.public_key is string
+      - xray_server.uuids is iterable
 
-- name: Ensure xray_uuids is a list
-  loop: "{{ xray_uuids }}"
+- name: Ensure xray_server.uuids is a list
+  loop: "{{ xray_server.uuids }}"
   assert:
     that:
       - item is string
       - item | length > 0
 
-- name: Ensure xray_next_hop values are defined
-  when: "xray_next_hop_host is defined and xray_next_hop_host is not none and xray_next_hop_host | string | length > 0"
+- name: Ensure xray_next_server values are defined
+  when: xray_next_server is not none
   assert:
     that:
-      - xray_next_hop_host is string
-      - xray_next_hop_host | length > 0
-      - xray_next_hop_port is number
-      - xray_next_hop_uuid is string
-      - xray_next_hop_uuid | length > 0
+      - xray_next_server.host is string
+      - xray_next_server.host | length > 0
+      - xray_next_server.port is number
+      - xray_next_server.uuids is iterable
+      - xray_next_server.uuids | length > 0
+      - xray_next_server.fingerprint is string
+      - xray_next_server.fingerprint | length > 0
+      - xray_next_server.public_key is string
+      - xray_next_server.public_key | length > 0
 
 - name: Install the prerequisites
   with_items:

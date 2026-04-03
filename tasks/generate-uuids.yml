@@ -1,9 +1,22 @@
 # required vars:
 # - count
 # - uuids_var (name of the variable to store the result in, e.g. "my_uuids")
+# optional vars:
+# - seed (integer seed for deterministic generation)
+# - seed_host (host string to make output unique per server; required when seed is set)
 
 - name: Generate {{ count }} UUIDs
-  command: python3 -c "import uuid; print('\n'.join(str(uuid.uuid4()) for _ in range({{ count | int }})))"
+  shell: |
+    python3 << 'EOF'
+    import uuid
+    {% if seed is defined %}
+    ns = uuid.UUID(int=0)
+    uuids = [str(uuid.uuid5(ns, '{{ seed }}:{{ seed_host }}:' + str(i))) for i in range({{ count | int }})]
+    {% else %}
+    uuids = [str(uuid.uuid4()) for _ in range({{ count | int }})]
+    {% endif %}
+    print('\n'.join(uuids))
+    EOF
   register: uuid_results
 
 - name: Set UUIDs fact

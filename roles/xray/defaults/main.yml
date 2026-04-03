@@ -1,23 +1,36 @@
-# public domain or IP where xray should be deployed (if ssh and xray are on the same IP, it should be equal to config_servers[hosts_server_uuid].host value)
-xray_host:
-# Port on which xray will listen on the server (should match the value in config/ports.yml)
-xray_port:
-# reality fingerprint for the server (output of `ssh-keyscan -t rsa <server_ip>` command)
-xray_fingerprint:
-# Fallback proxy target for xray
-xray_fallback_proxy_target:
-# array of SNI values for xray
-xray_snis:
-# private x25519 key for xray
-xray_private_key:
-# public x25519 key for xray
-xray_public_key:
-# list of uuids for xray users
-xray_uuids:
+# Default variables for xray role
+xray_server:
+  # public name for the server
+  host:
+  # port on which xray will listen on the server (should match the value in config/ports.yml)
+  port:
+  # reality fingerprint for the server (output of `ssh-keyscan -t rsa <server_ip>` command)
+  fingerprint:
+  # fallback proxy target for xray
+  fallback_proxy_target:
+  # array of SNI values for xray
+  snis:
+  # private x25519 key for xray
+  private_key:
+  # public x25519 key for xray
+  public_key:
+  # list of uuids for xray users
+  uuids:
+
 # next-hop relay: if set, traffic is forwarded to another VLESS server instead of going direct
 # (for use when this server is in a censored country and the next hop is in a free country)
-xray_next_hop_host:
-# next-hop relay port: port on which the next-hop VLESS server listens
-xray_next_hop_port:
-# next-hop relay uuid: uuid of the user on the next-hop VLESS server (should match one of the uuids in xray_uuids list)
-xray_next_hop_uuid:
+xray_next_server:
+  # next-hop relay IP
+  host:
+  # port on which the next-hop VLESS server listens
+  port:
+  # user uuids for the next-hop VLESS server
+  uuids:
+  # SNI values for the next-hop VLESS server
+  snis:
+  # reality fingerprint of the next-hop VLESS server
+  fingerprint:
+  # public x25519 key of the next-hop VLESS server
+  public_key:
+  # reality fingerprint for the next-hop VLESS server (output of `ssh-keyscan -t rsa <next_hop_host_ip>` command)
+  fingerprint:
