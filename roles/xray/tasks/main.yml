@@ -5,7 +5,7 @@
       - xray_port is number
       - xray_fingerprint is string
       - xray_fallback_proxy_target is string
-      - xray_sni is string
+      - xray_snis is iterable
       - xray_private_key is string
       - xray_public_key is string
       - xray_uuids is iterable

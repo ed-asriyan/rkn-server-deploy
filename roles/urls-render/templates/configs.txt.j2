@@ -1,3 +1,5 @@
 {% for uuid in xray_uuids %}
-vless://{{ uuid }}@{{ xray_host }}:{{ xray_port }}?type=tcp&security=reality&pbk={{ xray_public_key }}&fp={{ xray_fingerprint }}&sni={{ xray_sni }}&spx=%2F&flow=xtls-rprx-vision#{{ xray_name | urlencode }}
+{% for sni in xray_snis %}
+vless://{{ uuid }}@{{ xray_host }}:{{ xray_port }}?type=tcp&security=reality&pbk={{ xray_public_key }}&fp={{ xray_fingerprint }}&sni={{ sni }}&spx=%2F&flow=xtls-rprx-vision#{{ xray_name | urlencode }}
+{% endfor %}
 {% endfor %}

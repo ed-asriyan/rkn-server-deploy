@@ -6,8 +6,8 @@ xray_port:
 xray_fingerprint:
 # Fallback proxy target for xray
 xray_fallback_proxy_target:
-# SNI value for xray
-xray_sni:
+# array of SNI values for xray
+xray_snis:
 # private x25519 key for xray
 xray_private_key:
 # public x25519 key for xray

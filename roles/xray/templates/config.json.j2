@@ -26,7 +26,7 @@
           "dest": "{{ xray_fallback_proxy_target }}",
           "maxTimediff": 0,
           "privateKey": "{{ xray_private_key }}",
-          "serverNames": ["{{ xray_sni }}"],
+          "serverNames": {{ xray_snis | to_json }},
           "shortIds": [""],
           "show": false,
           "xver": 0
@@ -76,7 +76,7 @@
           "security": "reality",
           "realitySettings": {
             "fingerprint": "{{ xray_fingerprint }}",
-            "serverName": "{{ xray_sni }}",
+            "serverName": "{{ xray_snis | first }}",
             "publicKey": "{{ xray_public_key }}",
             "shortId": "",
             "spiderX": ""

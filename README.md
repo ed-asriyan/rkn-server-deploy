@@ -18,7 +18,7 @@ To deploy your own server, call the reusable workflow defined in [.github/workfl
 
 Do not trigger deployments from this public repository. The workflow produces sensitive output, including:
 - server IP or domain
-- SNI value
+- SNI values
 - generated VLESS URIs for end users
 
 Use a **private repository** as the caller so logs and artifacts are visible only to you.
@@ -56,7 +56,7 @@ jobs:
       port: 443
       fingerprint: chrome
       fallback_proxy_target: example.com:443
-      sni: example.com
+      snis: example.com,www.example.com
       number_of_users: 256
     secrets:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -74,7 +74,7 @@ The reusable workflow accepts these inputs:
 | `port` | Port exposed by Xray on the target host |
 | `fingerprint` | REALITY client fingerprint value |
 | `fallback_proxy_target` | Upstream host:port for non-VLESS traffic |
-| `sni` | SNI value used by REALITY clients |
+| `snis` | Comma-separated SNI values used by REALITY clients (e.g. `example.com,www.example.com`) |
 | `number_of_users` | Number of client URIs to generate |
 
 ### What the workflow does

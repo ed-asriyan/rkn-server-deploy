@@ -24,8 +24,8 @@ on:
         description: 'Fallback proxy target for xray (with port, e.g. example.com:443)'
         required: true
         type: string
-      sni:
-        description: 'SNI value for xray'
+      snis:
+        description: 'Comma-separated SNI values for xray (e.g. example.com,www.example.com)'
         required: true
         type: string
       number_of_users:
@@ -68,7 +68,7 @@ jobs:
           PORT: ${{ inputs.port }}
           FINGERPRINT: ${{ inputs.fingerprint }}
           FALLBACK_PROXY_TARGET: ${{ inputs.fallback_proxy_target }}
-          SNI: ${{ inputs.sni }}
+          SNIS: ${{ inputs.snis }}
           NUMBER_OF_USERS: ${{ inputs.number_of_users }}
           NEXT_HOP_HOST: ${{ inputs.next_hop_host }}
           NEXT_HOP_PORT: ${{ inputs.next_hop_port }}
@@ -79,7 +79,7 @@ jobs:
               --extra-vars "port=$PORT" \
               --extra-vars "fingerprint=$FINGERPRINT" \
               --extra-vars "fallback_proxy_target=$FALLBACK_PROXY_TARGET" \
-              --extra-vars "sni=$SNI" \
+              --extra-vars "snis=$SNIS" \
               --extra-vars "number_of_users=$NUMBER_OF_USERS" \
               --extra-vars "next_hop_host=$NEXT_HOP_HOST" \
               --extra-vars "next_hop_port=$NEXT_HOP_PORT" \
