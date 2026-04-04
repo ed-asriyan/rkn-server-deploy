@@ -121,7 +121,7 @@
             "direct-ipv6"
           ],
           "strategy": {
-            "type": "leastLoad"
+            "type": "leastPing" 
           }
         }
       ],
@@ -163,9 +163,8 @@
         "inboundTag": ["inbound-vless"],
         "outboundTag": "blocked",
         "ip": ["geoip:ru"]
-      }
+      },
       {% if xray_next_server is not none %}
-        ,
         {
           "type": "field",
           "inboundTag": ["inbound-vless"],
@@ -176,6 +175,12 @@
           "type": "field",
           "inboundTag": ["inbound-vless"],
           "outboundTag": "next-hop"
+        }
+      {% else %}
+        {
+          "type": "field",
+          "network": "tcp,udp",
+          "balancerTag": "smart-balancer"
         }
       {% endif %}
     ]
