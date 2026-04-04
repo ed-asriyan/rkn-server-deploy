@@ -41,7 +41,8 @@
       },
       "tag": "inbound-vless",
       "sniffing": {
-        "enabled": false
+        "enabled": true,
+        "destOverride": ["http", "tls", "quic"]
       },
       "allocate": {
         "strategy": "always",
@@ -83,11 +84,22 @@
           }
         }
       },
+    {% else %}
+      {
+        "tag": "direct-ipv4",
+        "protocol": "freedom",
+        "settings": {
+          "domainStrategy": "UseIPv4"
+        }
+      },
+      {
+        "tag": "direct-ipv6",
+        "protocol": "freedom",
+        "settings": {
+          "domainStrategy": "UseIPv6"
+        }
+      },
     {% endif %}
-    {
-      "tag": "direct",
-      "protocol": "freedom"
-    },
     {
       "tag": "blocked",
       "protocol": "blackhole",
@@ -97,6 +109,20 @@
 
   "routing": {
     "domainStrategy": "IPIfNonMatch",
+    {% if xray_next_server is none %}
+      "balancers": [
+        {
+          "tag": "smart-balancer",
+          "selector": [
+            "direct-ipv4",
+            "direct-ipv6"
+          ],
+          "strategy": {
+            "type": "leastLoad"
+          }
+        }
+      ],
+    {% endif %}
     "rules": [
       {
         "type": "field",
@@ -132,6 +158,18 @@
       {% endif %}
     ]
   },
+
+  {% if xray_next_server is none %}
+    "observatory": {
+      "subjectSelector": [
+        "direct-ipv4",
+        "direct-ipv6"
+      ],
+      "probeURL": "http://cp.cloudflare.com/generate_204",
+      "probeInterval": "24h",
+      "enableConcurrency": true
+    },
+  {% endif %}
 
   "log": {
     "access": "none",
