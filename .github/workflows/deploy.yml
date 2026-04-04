@@ -21,7 +21,12 @@ on:
         description: >-
           Integer seed for deterministic UUID and keypair generation. When set, re-running the workflow
           with the same seed and server hosts produces identical client configs. Omit for random generation.
-        required: false
+        required: true
+        type: string
+      whitelist-domains:
+        description: >-
+          Comma-separated list of RU domains to whitelist
+        required: true
         type: string
     secrets:
       SSH_PRIVATE_KEY:
@@ -48,11 +53,9 @@ jobs:
           SERVERS_JSON: ${{ inputs.servers }}
           PAIRS_JSON: ${{ inputs.pairs }}
           SEED: ${{ inputs.seed }}
+          WHITELIST_DOMAINS: ${{ inputs.whitelist-domains }}
         run: |
-              EXTRA='{"servers": '"$SERVERS_JSON"', "pairs": '"$PAIRS_JSON"'}'
-              if [ -n "$SEED" ]; then
-                EXTRA="${EXTRA%\}}, \"seed\": $SEED}"
-              fi
+              EXTRA='{"servers": '"$SERVERS_JSON"', "pairs": '"$PAIRS_JSON"', "whitelist_domains": "'"$WHITELIST_DOMAINS"'", "seed": '$SEED'}'
               printf '%s' "$EXTRA" > /tmp/vars.json
               ansible-playbook proxies.yml --extra-vars "@/tmp/vars.json"
 

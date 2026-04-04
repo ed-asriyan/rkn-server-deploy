@@ -127,6 +127,25 @@
       ],
     {% endif %}
     "rules": [
+      {% if xray_whitelist_domains | length > 0 %}
+        {
+          "type": "field",
+          "inboundTag": ["inbound-vless"],
+          {% if xray_next_server is not none %}
+            "outboundTag": "next-hop",
+          {% else %}
+            "balancerTag": "smart-balancer",
+          {% endif %}
+          "domain": [
+            {% for domain in xray_whitelist_domains %}
+              "domain:{{ domain }}"
+              {% if not loop.last %}
+                ,
+              {% endif %}
+            {% endfor %}
+          ]
+        },
+      {% endif %}
       {
         "type": "field",
         "inboundTag": ["inbound-vless"],

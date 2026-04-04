@@ -9,9 +9,17 @@
       - xray_server.private_key is string
       - xray_server.public_key is string
       - xray_server.uuids is iterable
+      - xray_whitelist_domains is iterable
 
 - name: Ensure xray_server.uuids is a list
   loop: "{{ xray_server.uuids }}"
+  assert:
+    that:
+      - item is string
+      - item | length > 0
+
+- name: Ensure xray_whitelist_domains is a list of non-empty strings
+  loop: "{{ xray_whitelist_domains }}"
   assert:
     that:
       - item is string

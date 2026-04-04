@@ -32,5 +32,6 @@ xray_next_server:
   fingerprint:
   # public x25519 key of the next-hop VLESS server
   public_key:
-  # reality fingerprint for the next-hop VLESS server (output of `ssh-keyscan -t rsa <next_hop_host_ip>` command)
-  fingerprint:
+
+# list of RU domains to whitelist
+xray_whitelist_domains: []

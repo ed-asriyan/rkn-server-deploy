@@ -19,7 +19,7 @@
       vars:
         private_key_var: "xray_private_key_{{ item.key }}"
         public_key_var: "xray_public_key_{{ item.key }}"
-        seed: "{{ seed | default(omit) }}"
+        seed: "{{ lookup('vars', 'seed') }}"
         seed_host: "{{ item.value.host }}"
 
     - name: Generate UUIDs for each server
@@ -28,7 +28,7 @@
       vars:
         count: "{{ item.value.number_of_users | int }}"
         uuids_var: "xray_uuids_{{ item.key }}"
-        seed: "{{ seed | default(omit) }}"
+        seed: "{{ lookup('vars', 'seed') }}"
         seed_host: "{{ item.value.host }}"
 
 - hosts: xray_servers
@@ -38,6 +38,7 @@
 
     - role: xray
       vars:
+        xray_whitelist_domains: "{{ whitelist_domains.split(',') }}"
         xray_server:
           host: "{{ xray_server_config.host }}"
           port: "{{ xray_server_config.port | int }}"

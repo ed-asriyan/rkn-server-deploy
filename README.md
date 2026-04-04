@@ -65,6 +65,7 @@ jobs:
             "number_of_users": 256
           }
         }
+      whitelist-domains: "example.ru,test.ru"
       seed: 42
     secrets:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -101,6 +102,7 @@ jobs:
             "number_of_users": 256
           }
         }
+      whitelist-domains: "example.ru,test.ru"
       pairs: '{"ru": "nl"}'
       seed: 42
     secrets:
@@ -117,8 +119,9 @@ Clients connect to `ru`, which forwards traffic to `nl`, which exits to the inte
 | Input | Required | Description |
 | --- | --- | --- |
 | `servers` | yes | JSON object of server configurations. Each key is a server name; each value is an object with: `host`, `port`, `fingerprint`, `fallback_proxy_target`, `snis` (comma-separated), `number_of_users` |
-| `pairs` | no | JSON object of relay pairs. Key proxies to value (e.g. `{"ru":"nl"}`). Servers not listed connect directly to the internet. Defaults to `{}` |
-| `seed` | no | Integer seed for deterministic UUID and keypair generation. When set, re-running with the same seed and server hosts produces identical client configs. Omit to generate randomly each run |
+| `whitelist-domains` | yes | Comma-separated list of RU domains to whitelist (e.g. `"example.ru,test.ru"`) |
+| `pairs` | yes | JSON object of relay pairs. Key proxies to value (e.g. `{"ru":"nl"}`). Servers not listed connect directly to the internet. |
+| `seed` | yes | Integer seed for deterministic UUID and keypair generation. When set, re-running with the same seed and server hosts produces identical client configs. Omit to generate randomly each run |
 
 ### What the workflow does
 1. Checks out this repository.
