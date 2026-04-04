@@ -42,6 +42,9 @@
       "tag": "inbound-vless",
       "sniffing": {
         "enabled": true,
+        {% if xray_next_server is not none %}
+          "routeOnly": true,
+        {% endif %}
         "destOverride": ["http", "tls", "quic"]
       },
       "allocate": {
