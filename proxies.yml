@@ -36,6 +36,8 @@
   roles:
     - name: vnstat
 
+    - name: yggdrasil
+
     - role: xray
       vars:
         xray_whitelist_domains: "{{ whitelist_domains.split(',') }}"

@@ -1,0 +1,21 @@
+- name: Install yggdrasil
+  package:
+    name: yggdrasil
+    state: present
+
+- name: Check if yggdrasil config already exists
+  stat:
+    path: /etc/yggdrasil/yggdrasil.conf
+  register: yggdrasil_conf
+
+- name: Generate yggdrasil config
+  when: not yggdrasil_conf.stat.exists
+  shell: yggdrasil -genconf > /etc/yggdrasil/yggdrasil.conf
+  args:
+    creates: /etc/yggdrasil/yggdrasil.conf
+
+- name: Enable and start yggdrasil service
+  service:
+    name: yggdrasil
+    state: started
+    enabled: yes
