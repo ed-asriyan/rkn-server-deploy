@@ -1,11 +1,1 @@
-vault.txt
-uris.txt
-id_rsa
-id_rsa.pub
-known_hosts
-config/frontman.yml
-config/metrics.yml
-config/servers.yml
-config/supabase.yml
-config/hosts.yml
-static
+.env
