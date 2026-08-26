@@ -1,34 +1,25 @@
 # RKN Server Deploy
-Docker-based deployment for Xray VLESS Reality proxy servers with automatic client URI generation, deterministic key generation, next-hop relay routing, and Supabase synchronization.
+
+Docker-based deployment for Xray VLESS Reality proxy servers with automatic client URI generation, deterministic key generation, next-hop relay routing, hourly traffic reporting, and Supabase synchronization.
 
 ## Features
+
 - **Xray Core with VLESS + XTLS-Reality**: Fast and secure proxy server.
 - **Deterministic Keys & UUIDs**: When `SEED` is provided, recreating or updating containers preserves client configuration URIs.
 - **Relay / Next-Hop Routing**: Easily chain servers (e.g. forward traffic from a domestic relay server to an overseas server).
-- **Supabase Integration**: Automatically pushes generated client VLESS URIs to a Supabase Edge Function (`submit_server`).
-- **Domain Whitelisting & RU GeoIP/Geosite Blocking**: Built-in routing rules.
+- **Supabase Synchronization**: Automatically pushes generated client VLESS URIs on startup to the Supabase Edge Function (`submit_server`).
+- **Hourly Server-wide Traffic Reporter**: Background daemon that tracks network traffic in non-overlapping 1-hour UTC intervals and pushes metrics to Supabase (`submit_traffic`). This does not collect per-user traffic, only aggregate server-wide traffic.
 
 ## Quick Start
+
 1. Copy `.env.example` to `.env`:
    ```bash
    cp .env.example .env
    ```
 
 2. Fill in the required environment variables:
-   ```env
-   SERVER_NAME=myserver1
-   HOST=1.2.3.4
-   PORT=443
-   SNIS=google.com
-   FALLBACK_PROXY_TARGET=google.com:443
-   FINGERPRINT=chrome
-   NUMBER_OF_USERS=256
-   SEED=1234
-   WHITELIST_DOMAINS=rkn.gov.ru
-
-   # Optional: Supabase sync
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_SECRET_KEY=your-service-role-key
+      ```bash
+   vim .env
    ```
 
 3. Run with Docker Compose:

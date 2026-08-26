@@ -19,13 +19,14 @@ RUN set -eux; \
     curl -sSL "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${XRAY_ARCH}.zip" -o /tmp/xray.zip; \
     unzip /tmp/xray.zip -d /usr/local/bin/ xray geosite.dat geoip.dat; \
     chmod +x /usr/local/bin/xray; \
-    mkdir -p /usr/local/share/xray /etc/xray; \
+    mkdir -p /usr/local/share/xray /etc/xray /data; \
     mv /usr/local/bin/geosite.dat /usr/local/share/xray/; \
     mv /usr/local/bin/geoip.dat /usr/local/share/xray/; \
     rm -rf /tmp/xray.zip
 
 COPY entrypoint.py /usr/local/bin/entrypoint.py
-RUN chmod +x /usr/local/bin/entrypoint.py
+COPY traffic_reporter.py /usr/local/bin/traffic_reporter.py
+RUN chmod +x /usr/local/bin/entrypoint.py /usr/local/bin/traffic_reporter.py
 
 ENV XRAY_LOCATION_ASSET=/usr/local/share/xray
 

@@ -46,6 +46,9 @@ def generate_uuids(count: int, seed: str | None, seed_host: str) -> list[str]:
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("traffic-reporter", "traffic_reporter"):
+        os.execvp("python3", ["python3", "/usr/local/bin/traffic_reporter.py"])
+
     name = os.environ.get("SERVER_NAME") or os.environ.get("NAME") or "server"
     host = os.environ.get("HOST")
     if not host:
@@ -341,9 +344,9 @@ def main():
 
     # Upload URIs to Supabase
     supabase_url = os.environ.get("SUPABASE_URL")
-    SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY")
+    supabase_secret_key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
-    if supabase_url and SUPABASE_SECRET_KEY:
+    if supabase_url and supabase_secret_key:
         print(f"Submitting {len(uris)} URIs to Supabase function at {supabase_url}...")
         url = f"{supabase_url.rstrip('/')}/functions/v1/submit_server"
         payload = json.dumps(uris).encode("utf-8")
@@ -351,8 +354,8 @@ def main():
             url,
             data=payload,
             headers={
-                "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
-                "apikey": SUPABASE_SECRET_KEY,
+                "Authorization": f"Bearer {supabase_secret_key}",
+                "apikey": supabase_secret_key,
                 "Content-Type": "application/json"
             },
             method="POST"
