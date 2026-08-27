@@ -54,16 +54,22 @@ def get_network_bytes() -> tuple[int, int]:
     return total_rx, total_tx
 
 
-def send_unsent_records(provider_name: str, supabase_url: str, supabase_key: str):
+def send_unsent_records(provider_id: str, supabase_url: str, supabase_key: str):
     state = load_state()
     unsent = state.get("unsent", [])
     if not unsent:
         return
 
-    payload = json.dumps({
-        "provider_name": provider_name,
+    if not provider_id:
+        print("WARNING: SERVER_UUID is not set. Cannot submit traffic stats.", file=sys.stderr)
+        return
+
+    payload_data = {
+        "provider_id": provider_id,
         "stats": unsent
-    }).encode("utf-8")
+    }
+
+    payload = json.dumps(payload_data).encode("utf-8")
 
     url = f"{supabase_url.rstrip('/')}/functions/v1/submit_traffic"
     req = urllib.request.Request(
@@ -109,13 +115,16 @@ def add_hourly_record(state: dict, period_start: str, period_end: str, rx_bytes:
 
 def main():
     print("Starting Traffic Reporter daemon...")
-    provider_name = os.environ.get("SERVER_NAME") or os.environ.get("NAME") or "server"
+    provider_id = os.environ.get("SERVER_UUID")
     supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    supabase_key = os.environ.get("SUPABASE_SECRET_KEY")
+
+    if not provider_id or not supabase_url or not supabase_key:
+        print("WARNING: SERVER_UUID, SUPABASE_URL, or SUPABASE_SECRET_KEY environment variable is not set.", file=sys.stderr)
+        return
 
     # Try sending any pending backlog on startup
-    if supabase_url and supabase_key:
-        send_unsent_records(provider_name, supabase_url, supabase_key)
+    send_unsent_records(provider_id, supabase_url, supabase_key)
 
     while True:
         now_utc = datetime.datetime.now(datetime.timezone.utc)
@@ -151,8 +160,8 @@ def main():
                         "tx_bytes": curr_tx
                     }
                     save_state(state)
-                    if supabase_url and supabase_key:
-                        send_unsent_records(provider_name, supabase_url, supabase_key)
+                    if supabase_url and supabase_key and provider_id:
+                        send_unsent_records(provider_id, supabase_url, supabase_key)
             except Exception as e:
                 print(f"Error checking baseline time: {e}", file=sys.stderr)
                 state["baseline"] = {
@@ -188,8 +197,7 @@ def main():
         }
         save_state(state)
 
-        if supabase_url and supabase_key:
-            send_unsent_records(provider_name, supabase_url, supabase_key)
+        send_unsent_records(provider_id, supabase_url, supabase_key)
 
 
 if __name__ == "__main__":

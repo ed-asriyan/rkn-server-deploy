@@ -16,12 +16,10 @@ Docker-based deployment for Xray VLESS Reality proxy servers with automatic clie
    ```bash
    cp .env.example .env
    ```
-
-2. Fill in the required environment variables:
-      ```bash
+2. Fill in the required environment variables
+   ```bash
    vim .env
    ```
-
 3. Run with Docker Compose:
    ```bash
    docker compose up -d
@@ -31,16 +29,17 @@ Docker-based deployment for Xray VLESS Reality proxy servers with automatic clie
 | Variable | Required | Description | Example |
 |---|---|---|---|
 | `HOST` | **Yes** | Server public IP address or domain | `1.2.3.4` |
-| `SERVER_NAME` | No | Server/provider name tag (default: compose project name) | `myserver1` |
+| `SERVER_NAME` | No | Server/provider name tag (default: compose project name) | `Netherlands 1` |
+| `SERVER_UUID` | No | Server UUID for identification and renaming in Supabase | `e625d2fc-42db-4483-94bb-d7caa21cc341` |
 | `PORT` | No | Port on which Xray listens (default: `443`) | `443` |
 | `SNIS` | **Yes** | Comma-separated list of SNIs for Reality | `google.com` |
-| `FALLBACK_PROXY_TARGET` | No | Fallback destination (default: `<SNIS[0]>:443`) | `google.com:443` |
+| `FALLBACK_PROXY_TARGET` | **Yes** | Fallback destination (default: `<SNIS[0]>:443`) | `google.com:443` |
 | `FINGERPRINT` | No | Reality uTLS fingerprint (default: `chrome`) | `chrome` |
 | `NUMBER_OF_USERS` | No | Number of client UUIDs to generate (default: `256`) | `256` |
-| `SEED` | No | Integer seed for deterministic keypair & UUID generation | `2343` |
+| `SEED` | No | Integer seed for deterministic keypair & UUID generation | `123456789` |
 | `WHITELIST_DOMAINS` | No | Comma-separated domains to bypass RU blocks | `rkn.gov.ru` |
 | `SUPABASE_URL` | No | Supabase project URL | `https://xyz.supabase.co` |
-| `SUPABASE_SECRET_KEY` | No | Supabase secret key for authentication | `eyJ...` |
+| `SUPABASE_SECRET_KEY` | No | Supabase secret key for authentication | `sb_secret_****` |
 | `NEXT_HOP_HOST` | No | Destination server IP for relay/chaining | `5.6.7.8` |
 | `NEXT_HOP_PORT` | No | Destination server port (default: `443`) | `8443` |
 | `NEXT_HOP_SNIS` | No | Destination server SNI for Reality | `google.com` |

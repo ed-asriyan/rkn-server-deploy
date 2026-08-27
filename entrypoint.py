@@ -49,10 +49,16 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] in ("traffic-reporter", "traffic_reporter"):
         os.execvp("python3", ["python3", "/usr/local/bin/traffic_reporter.py"])
 
-    name = os.environ.get("SERVER_NAME") or os.environ.get("NAME") or "server"
+    server_uuid = os.environ.get("SERVER_UUID")
+    name = os.environ.get("SERVER_NAME") or server_uuid
     host = os.environ.get("HOST")
+
     if not host:
         print("ERROR: HOST environment variable is required.", file=sys.stderr)
+        sys.exit(1)
+
+    if not server_uuid:
+        print("ERROR: SERVER_UUID environment variable is required.", file=sys.stderr)
         sys.exit(1)
 
     port_str = os.environ.get("PORT", "443")
@@ -349,7 +355,14 @@ def main():
     if supabase_url and supabase_secret_key:
         print(f"Submitting {len(uris)} URIs to Supabase function at {supabase_url}...")
         url = f"{supabase_url.rstrip('/')}/functions/v1/submit_server"
-        payload = json.dumps(uris).encode("utf-8")
+        payload_data = {
+            "id": server_uuid,
+            "server_id": server_uuid,
+            "name": name,
+            "server_name": name,
+            "uris": uris
+        }
+        payload = json.dumps(payload_data).encode("utf-8")
         req = urllib.request.Request(
             url,
             data=payload,
