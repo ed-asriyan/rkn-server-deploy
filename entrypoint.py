@@ -437,7 +437,9 @@ def main():
                 )
             uris.append(uri)
 
-    print(f"Generated {len(uris)} client VLESS URIs for provider '{name}' (mode: {mode})")
+    print(f"Generated {len(uris)} client VLESS URIs for provider '{name}' (mode: {mode}):")
+    for uri in uris:
+        print(uri)
 
     # Upload URIs to Supabase
     supabase_url = os.environ.get("SUPABASE_URL")
