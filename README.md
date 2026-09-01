@@ -1,6 +1,6 @@
 # RKN Server Deploy
 
-Docker-based deployment for Xray VLESS Reality proxy servers with selectable transport modes (`vless-reality-xhttp` and `vless-reality-tcp`), automatic client URI generation, deterministic key generation, next-hop relay routing, hourly traffic reporting, and Supabase synchronization.
+Docker-based deployment for Xray VLESS Reality proxy servers with selectable transport modes (`vless-reality-xhttp` and `vless-reality-tcp`), automatic client URI generation, deterministic key generation, dynamic subscription-based next-hop relay routing with `leastPing` load balancing & health checks, hourly traffic reporting, and Supabase synchronization.
 
 ## Features
 
@@ -8,7 +8,13 @@ Docker-based deployment for Xray VLESS Reality proxy servers with selectable tra
   - `vless-reality-xhttp` (default): Modern XHTTP transport (HTTP/2 & HTTP/3 encapsulation) with Reality TLS camouflage.
   - `vless-reality-tcp`: Classic VLESS over TCP with XTLS Vision flow (`xtls-rprx-vision`) and Reality.
 - **Deterministic Keys & UUIDs**: When `SEED` is provided, recreating or updating containers preserves client configuration URIs.
-- **Relay / Next-Hop Routing**: Easily chain servers (e.g. forward traffic from a domestic relay server to an overseas server) with independent mode selection for next hop (`NEXT_HOP_MODE`).
+- **Unified Subscription-Based Next-Hop Relay**:
+  - Simply pass a subscription URL (`NEXT_HOP=https://...`) or raw VLESS URIs (separated by newlines, commas, or spaces).
+  - Automatically fetches and parses all downstream VLESS nodes (supports plain text, base64 subscriptions, and JSON arrays).
+  - **Self-Loop Protection**: If the subscription contains this server's own node (matching `HOST` and `PORT`), it is automatically ignored.
+  - Background periodic polling (`NEXT_HOP_UPDATE_INTERVAL=3600`): re-fetches the subscription and hot-reloads Xray when nodes change.
+  - Automatic latency probing via Xray `observatory` (`NEXT_HOP_PROBE_URL`, `NEXT_HOP_PROBE_INTERVAL`).
+  - Automatic `leastPing` load balancing and failover: traffic is routed to the fastest healthy node.
 - **Supabase Synchronization**: Automatically pushes generated client VLESS URIs on startup to the Supabase Edge Function (`submit_server`).
 - **Hourly Server-wide Traffic Reporter**: Background daemon that tracks network traffic in non-overlapping 1-hour UTC intervals and pushes metrics to Supabase (`submit_traffic`). This does not collect per-user traffic, only aggregate server-wide traffic.
 
@@ -45,12 +51,7 @@ Docker-based deployment for Xray VLESS Reality proxy servers with selectable tra
 | `WHITELIST_DOMAINS` | No | Comma-separated domains to bypass RU blocks | `rkn.gov.ru` |
 | `SUPABASE_URL` | No | Supabase project URL | `https://xyz.supabase.co` |
 | `SUPABASE_SECRET_KEY` | No | Supabase secret key for authentication | `sb_secret_****` |
-| `NEXT_HOP_MODE` | No | Destination server mode: `vless-reality-xhttp` or `vless-reality-tcp` (default: value of `MODE`) | `vless-reality-xhttp` |
-| `NEXT_HOP_HOST` | No | Destination server IP for relay/chaining | `5.6.7.8` |
-| `NEXT_HOP_PORT` | No | Destination server port (default: `443`) | `8443` |
-| `NEXT_HOP_SNIS` | No | Destination server SNI for Reality | `google.com` |
-| `NEXT_HOP_FINGERPRINT` | No | Destination server fingerprint (default: `chrome`) | `chrome` |
-| `NEXT_HOP_PUBLIC_KEY` | No | Destination server X25519 public key (auto-derived if `SEED` is set) | |
-| `NEXT_HOP_UUID` | No | Destination server client UUID (auto-derived if `SEED` is set) | |
-| `NEXT_HOP_XHTTP_PATH` | No | Destination server XHTTP path (default: `XHTTP_PATH` or `/`) | `/` |
-| `NEXT_HOP_XHTTP_MODE` | No | Destination server XHTTP mode (default: `XHTTP_MODE` or `auto`) | `auto` |
+| `NEXT_HOP` | No | Subscription URL (`https://...`) or raw VLESS URIs (separated by newlines, commas, or spaces) | `https://my-sub.co/nodes` |
+| `NEXT_HOP_UPDATE_INTERVAL` | No | Interval in seconds to poll subscription URL and reload (default: `3600`) | `3600` |
+| `NEXT_HOP_PROBE_URL` | No | URL used by observatory health checks (default: `http://cp.cloudflare.com/generate_204`) | `http://cp.cloudflare.com/generate_204` |
+| `NEXT_HOP_PROBE_INTERVAL` | No | Interval for next-hop latency probe & health checks (default: `1m`) | `1m` |
