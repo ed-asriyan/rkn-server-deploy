@@ -97,6 +97,48 @@ def parse_vless_uri(uri: str) -> dict | None:
         return None
 
 
+def parse_singbox_outbounds(data: dict) -> list[dict]:
+    nodes = []
+    for ob in data.get("outbounds", []):
+        if ob.get("type") != "vless":
+            continue
+        host = ob.get("server")
+        if not host:
+            continue
+        port = int(ob.get("server_port", 443))
+        uuid_str = ob.get("uuid")
+        flow = ob.get("flow", "")
+        tls_cfg = ob.get("tls", {}) if isinstance(ob.get("tls"), dict) else {}
+        reality_cfg = tls_cfg.get("reality", {}) if isinstance(tls_cfg.get("reality"), dict) else {}
+        is_reality = reality_cfg.get("enabled", False) or bool(reality_cfg.get("public_key"))
+        pbk = reality_cfg.get("public_key", "")
+        sni = tls_cfg.get("server_name") or host
+        utls_cfg = tls_cfg.get("utls", {}) if isinstance(tls_cfg.get("utls"), dict) else {}
+        fp = utls_cfg.get("fingerprint", "chrome") if isinstance(utls_cfg, dict) else "chrome"
+
+        tr_cfg = ob.get("transport", {}) if isinstance(ob.get("transport"), dict) else {}
+        net_type = tr_cfg.get("type", "tcp").lower()
+        path = tr_cfg.get("path", "/")
+        mode = tr_cfg.get("mode", "auto")
+
+        nodes.append({
+            "user_id": uuid_str,
+            "host": host,
+            "port": port,
+            "net_type": net_type,
+            "security": "reality" if is_reality else ("tls" if tls_cfg.get("enabled") else "none"),
+            "pbk": pbk,
+            "fp": fp,
+            "sni": sni,
+            "flow": flow,
+            "path": path,
+            "mode": mode,
+            "spx": "/",
+            "name": ob.get("tag", f"{host}:{port}")
+        })
+    return nodes
+
+
 def vless_dict_to_outbound(v: dict, tag: str) -> dict:
     users = [
         {
@@ -161,7 +203,7 @@ def vless_dict_to_outbound(v: dict, tag: str) -> dict:
     }
 
 
-def fetch_subscription(url_or_content: str, self_host: str, self_port: int) -> list[str]:
+def fetch_subscription_nodes(url_or_content: str, self_host: str, self_port: int) -> list[dict]:
     url_or_content = url_or_content.strip()
     if not url_or_content:
         return []
@@ -185,57 +227,75 @@ def fetch_subscription(url_or_content: str, self_host: str, self_port: int) -> l
 
     content = content.strip()
 
-    # Try decoding base64 subscription format
+    # 1. Try decoding base64 format
     try:
         decoded = base64.b64decode(content).decode("utf-8", errors="replace")
-        if "vless://" in decoded:
-            content = decoded
+        if "vless://" in decoded or "outbounds" in decoded:
+            content = decoded.strip()
     except Exception:
         pass
 
-    # Try JSON array or dictionary format
+    # 2. Try JSON (sing-box config or array of URIs)
     try:
         data = json.loads(content)
-        if isinstance(data, list):
-            content = chr(10).join(str(item) for item in data)
-        elif isinstance(data, dict) and "uris" in data and isinstance(data["uris"], list):
-            content = chr(10).join(str(item) for item in data["uris"])
+        if isinstance(data, dict) and "outbounds" in data:
+            nodes = parse_singbox_outbounds(data)
+            filtered = []
+            for n in nodes:
+                if n["host"] == self_host and n["port"] == self_port:
+                    print(f"Skipping self-referencing next-hop node: {n['name']} ({n['host']}:{n['port']})")
+                    continue
+                filtered.append(n)
+            if filtered:
+                return filtered
+        elif isinstance(data, list):
+            nodes = []
+            for item in data:
+                if isinstance(item, str) and item.startswith("vless://"):
+                    p = parse_vless_uri(item)
+                    if p:
+                        nodes.append(p)
+            filtered = []
+            for n in nodes:
+                if n["host"] == self_host and n["port"] == self_port:
+                    print(f"Skipping self-referencing next-hop node: {n['name']} ({n['host']}:{n['port']})")
+                    continue
+                filtered.append(n)
+            if filtered:
+                return filtered
     except Exception:
         pass
 
-    # Extract all vless:// URIs (supporting newline, comma, or space delimiters)
+    # 3. Extract raw vless:// URIs (separated by newlines, commas, or spaces)
     raw_uris = re.findall(r"vless://[^\s,]+", content)
-
-    # Filter out self-referencing nodes (matching this server's host/IP and port)
-    filtered_uris = []
+    nodes = []
     for u in raw_uris:
-        parsed = parse_vless_uri(u)
-        if not parsed:
+        p = parse_vless_uri(u)
+        if not p:
             continue
-        if parsed["host"] == self_host and parsed["port"] == self_port:
-            node_name = parsed["name"]
-            node_host = parsed["host"]
-            node_port = parsed["port"]
-            print(f"Skipping self-referencing next-hop node: {node_name} ({node_host}:{node_port})")
+        if p["host"] == self_host and p["port"] == self_port:
+            print(f"Skipping self-referencing next-hop node: {p['name']} ({p['host']}:{p['port']})")
             continue
-        filtered_uris.append(u)
+        nodes.append(p)
 
-    return filtered_uris
+    return nodes
 
 
-def resolve_next_hop_outbounds(self_host: str, self_port: int) -> tuple[list[dict], list[str]]:
+def resolve_next_hop_outbounds(self_host: str, self_port: int, fatal_on_empty: bool = True) -> tuple[list[dict], list[dict]]:
     sub_param = (os.environ.get("NEXT_HOP") or "").strip()
     if sub_param:
-        uris = fetch_subscription(sub_param, self_host, self_port)
-        if uris:
+        nodes = fetch_subscription_nodes(sub_param, self_host, self_port)
+        if nodes:
             outbounds = []
-            for i, u in enumerate(uris):
-                parsed = parse_vless_uri(u)
-                if parsed:
-                    tag = f"next-hop-{i+1}"
-                    outbounds.append(vless_dict_to_outbound(parsed, tag))
-            if outbounds:
-                return outbounds, uris
+            for i, n in enumerate(nodes):
+                tag = f"next-hop-{i+1}"
+                outbounds.append(vless_dict_to_outbound(n, tag))
+            return outbounds, nodes
+        else:
+            msg = f"FATAL ERROR: NEXT_HOP was specified ('{sub_param}'), but no valid next-hop nodes could be extracted (failed to download, invalid format, or all nodes matched self host:port)!"
+            print(msg, file=sys.stderr)
+            if fatal_on_empty:
+                sys.exit(1)
 
     return [], []
 
@@ -565,14 +625,20 @@ def main():
     else:
         print("SUPABASE_URL or SUPABASE_SECRET_KEY not provided. Skipping Supabase upload.")
 
+    if os.environ.get("NEXT_HOP"):
+        print("Waiting 5 seconds for backend node redistribution before resolving NEXT_HOP...")
+        time.sleep(5)
+
     # Next-hop / Outbounds resolution
-    next_hop_outbounds, current_hop_signatures = resolve_next_hop_outbounds(host, port)
+    next_hop_outbounds, current_nodes = resolve_next_hop_outbounds(host, port)
     has_next_hop = len(next_hop_outbounds) > 0
 
     if has_next_hop:
         outbounds = list(next_hop_outbounds)
         outbounds.append({"tag": "blocked", "protocol": "blackhole", "settings": {}})
-        print(f"Configured {len(next_hop_outbounds)} next-hop relay server(s) from NEXT_HOP with dynamic leastPing load balancing.")
+        print(f"Configured {len(next_hop_outbounds)} next-hop relay server(s) from NEXT_HOP with dynamic leastPing load balancing:")
+        for n in current_nodes:
+            print(f"  ➜ [{n['name']}] {n['host']}:{n['port']} ({n['net_type']})")
     else:
         outbounds = [
             {
@@ -636,10 +702,10 @@ def main():
             if is_sub_url and (time.time() - last_update_time >= update_interval):
                 last_update_time = time.time()
                 print(f"Polling next-hop subscription from {sub_param}...")
-                new_outbounds, new_signatures = resolve_next_hop_outbounds(host, port)
-                if new_outbounds and new_signatures != current_hop_signatures:
+                new_outbounds, new_nodes = resolve_next_hop_outbounds(host, port, fatal_on_empty=False)
+                if new_outbounds and new_nodes != current_nodes:
                     print(f"Subscription updated! Found {len(new_outbounds)} nodes. Updating config and reloading Xray...")
-                    current_hop_signatures = new_signatures
+                    current_nodes = new_nodes
                     new_out_list = list(new_outbounds)
                     new_out_list.append({"tag": "blocked", "protocol": "blackhole", "settings": {}})
                     new_cfg = generate_xray_config(
@@ -657,6 +723,8 @@ def main():
 
                     xray_proc = subprocess.Popen([xray_binary, "run", "-c", config_path])
                     print("Xray successfully reloaded with updated next-hop nodes.")
+                elif not new_outbounds:
+                    print("WARNING: Background subscription poll returned 0 nodes. Keeping existing next-hop outbounds.", file=sys.stderr)
         except KeyboardInterrupt:
             break
 
