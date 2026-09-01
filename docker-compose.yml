@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
+      - MODE=${MODE:-vless-reality-xhttp}
       - SERVER_NAME=${SERVER_NAME:-${COMPOSE_PROJECT_NAME}}
       - SERVER_UUID=${SERVER_UUID}
       - HOST=${HOST:?HOST is required}
@@ -11,17 +12,22 @@ services:
       - SNIS=${SNIS:?SNIS is required}
       - FALLBACK_PROXY_TARGET=${FALLBACK_PROXY_TARGET}
       - FINGERPRINT=${FINGERPRINT:-chrome}
+      - XHTTP_PATH=${XHTTP_PATH:-/}
+      - XHTTP_MODE=${XHTTP_MODE:-auto}
       - NUMBER_OF_USERS=${NUMBER_OF_USERS:-256}
       - SEED=${SEED}
       - WHITELIST_DOMAINS=${WHITELIST_DOMAINS}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SECRET_KEY=${SUPABASE_SECRET_KEY}
+      - NEXT_HOP_MODE=${NEXT_HOP_MODE}
       - NEXT_HOP_HOST=${NEXT_HOP_HOST}
       - NEXT_HOP_PORT=${NEXT_HOP_PORT}
       - NEXT_HOP_SNIS=${NEXT_HOP_SNIS}
       - NEXT_HOP_FINGERPRINT=${NEXT_HOP_FINGERPRINT}
       - NEXT_HOP_PUBLIC_KEY=${NEXT_HOP_PUBLIC_KEY}
       - NEXT_HOP_UUID=${NEXT_HOP_UUID}
+      - NEXT_HOP_XHTTP_PATH=${NEXT_HOP_XHTTP_PATH}
+      - NEXT_HOP_XHTTP_MODE=${NEXT_HOP_XHTTP_MODE}
 
   traffic-reporter:
     image: ghcr.io/ed-asriyan/rkn-server-deploy:latest

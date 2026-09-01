@@ -49,6 +49,11 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] in ("traffic-reporter", "traffic_reporter"):
         os.execvp("python3", ["python3", "/usr/local/bin/traffic_reporter.py"])
 
+    mode = os.environ.get("MODE", "vless-reality-xhttp").strip().lower()
+    if mode not in ("vless-reality-tcp", "vless-reality-xhttp"):
+        print(f"ERROR: Invalid MODE '{mode}'. Must be 'vless-reality-tcp' or 'vless-reality-xhttp'.", file=sys.stderr)
+        sys.exit(1)
+
     server_uuid = os.environ.get("SERVER_UUID")
     name = os.environ.get("SERVER_NAME") or server_uuid
     host = os.environ.get("HOST")
@@ -79,6 +84,11 @@ def main():
         fallback_proxy_target = f"{snis[0]}:443"
 
     fingerprint = os.environ.get("FINGERPRINT", "chrome")
+    xhttp_path = os.environ.get("XHTTP_PATH", "/")
+    if not xhttp_path.startswith("/"):
+        xhttp_path = "/" + xhttp_path
+    xhttp_mode = os.environ.get("XHTTP_MODE", "auto")
+
     number_of_users = int(os.environ.get("NUMBER_OF_USERS", "256"))
     seed = os.environ.get("SEED")
 
@@ -95,6 +105,11 @@ def main():
 
     next_hop_config = None
     if has_next_hop:
+        next_hop_mode = os.environ.get("NEXT_HOP_MODE", mode).strip().lower()
+        if next_hop_mode not in ("vless-reality-tcp", "vless-reality-xhttp"):
+            print(f"ERROR: Invalid NEXT_HOP_MODE '{next_hop_mode}'. Must be 'vless-reality-tcp' or 'vless-reality-xhttp'.", file=sys.stderr)
+            sys.exit(1)
+
         next_hop_port = int(os.environ.get("NEXT_HOP_PORT", "443"))
         next_hop_fingerprint = os.environ.get("NEXT_HOP_FINGERPRINT", fingerprint)
         next_hop_snis_str = os.environ.get("NEXT_HOP_SNIS", "") or os.environ.get("NEXT_HOP_SNI", "")
@@ -121,24 +136,77 @@ def main():
                 print("ERROR: NEXT_HOP_UUID is required if SEED is not set.", file=sys.stderr)
                 sys.exit(1)
 
+        next_hop_xhttp_path = os.environ.get("NEXT_HOP_XHTTP_PATH", xhttp_path)
+        if not next_hop_xhttp_path.startswith("/"):
+            next_hop_xhttp_path = "/" + next_hop_xhttp_path
+        next_hop_xhttp_mode = os.environ.get("NEXT_HOP_XHTTP_MODE", xhttp_mode)
+
         next_hop_config = {
+            "mode": next_hop_mode,
             "host": next_hop_host,
             "port": next_hop_port,
             "fingerprint": next_hop_fingerprint,
             "sni": next_hop_snis[0],
             "public_key": next_hop_public_key,
-            "uuid": next_hop_uuid
+            "uuid": next_hop_uuid,
+            "path": next_hop_xhttp_path,
+            "mode_type": next_hop_xhttp_mode
         }
 
     # Generate Xray config
-    inbound_clients = [
-        {
-            "email": u,
-            "flow": "xtls-rprx-vision",
-            "id": u
+    if mode == "vless-reality-tcp":
+        inbound_clients = [
+            {
+                "email": u,
+                "flow": "xtls-rprx-vision",
+                "id": u
+            }
+            for u in uuids
+        ]
+        inbound_stream_settings = {
+            "network": "tcp",
+            "realitySettings": {
+                "dest": fallback_proxy_target,
+                "maxTimediff": 0,
+                "privateKey": private_key,
+                "serverNames": snis,
+                "shortIds": [""],
+                "show": False,
+                "xver": 0
+            },
+            "security": "reality",
+            "tcpSettings": {
+                "acceptProxyProtocol": False,
+                "header": {
+                    "type": "none"
+                }
+            }
         }
-        for u in uuids
-    ]
+    else:  # vless-reality-xhttp
+        inbound_clients = [
+            {
+                "email": u,
+                "id": u
+            }
+            for u in uuids
+        ]
+        inbound_stream_settings = {
+            "network": "xhttp",
+            "xhttpSettings": {
+                "path": xhttp_path,
+                "mode": xhttp_mode
+            },
+            "realitySettings": {
+                "dest": fallback_proxy_target,
+                "maxTimediff": 0,
+                "privateKey": private_key,
+                "serverNames": snis,
+                "shortIds": [""],
+                "show": False,
+                "xver": 0
+            },
+            "security": "reality"
+        }
 
     inbounds = [
         {
@@ -150,25 +218,7 @@ def main():
                 "decryption": "none",
                 "fallbacks": []
             },
-            "streamSettings": {
-                "network": "tcp",
-                "realitySettings": {
-                    "dest": fallback_proxy_target,
-                    "maxTimediff": 0,
-                    "privateKey": private_key,
-                    "serverNames": snis,
-                    "shortIds": [""],
-                    "show": False,
-                    "xver": 0
-                },
-                "security": "reality",
-                "tcpSettings": {
-                    "acceptProxyProtocol": False,
-                    "header": {
-                        "type": "none"
-                    }
-                }
-            },
+            "streamSettings": inbound_stream_settings,
             "tag": "inbound-vless",
             "sniffing": {
                 "enabled": True,
@@ -184,6 +234,50 @@ def main():
     ]
 
     if has_next_hop:
+        if next_hop_config["mode"] == "vless-reality-tcp":
+            next_hop_users = [
+                {
+                    "id": next_hop_config["uuid"],
+                    "email": next_hop_config["uuid"],
+                    "flow": "xtls-rprx-vision",
+                    "encryption": "none"
+                }
+            ]
+            next_hop_stream_settings = {
+                "network": "tcp",
+                "security": "reality",
+                "realitySettings": {
+                    "fingerprint": next_hop_config["fingerprint"],
+                    "serverName": next_hop_config["sni"],
+                    "publicKey": next_hop_config["public_key"],
+                    "shortId": "",
+                    "spiderX": ""
+                }
+            }
+        else:  # vless-reality-xhttp
+            next_hop_users = [
+                {
+                    "id": next_hop_config["uuid"],
+                    "email": next_hop_config["uuid"],
+                    "encryption": "none"
+                }
+            ]
+            next_hop_stream_settings = {
+                "network": "xhttp",
+                "security": "reality",
+                "realitySettings": {
+                    "fingerprint": next_hop_config["fingerprint"],
+                    "serverName": next_hop_config["sni"],
+                    "publicKey": next_hop_config["public_key"],
+                    "shortId": "",
+                    "spiderX": ""
+                },
+                "xhttpSettings": {
+                    "path": next_hop_config["path"],
+                    "mode": next_hop_config["mode_type"]
+                }
+            }
+
         outbounds = [
             {
                 "tag": "next-hop",
@@ -193,28 +287,11 @@ def main():
                         {
                             "address": next_hop_config["host"],
                             "port": next_hop_config["port"],
-                            "users": [
-                                {
-                                    "id": next_hop_config["uuid"],
-                                    "email": next_hop_config["uuid"],
-                                    "flow": "xtls-rprx-vision",
-                                    "encryption": "none"
-                                }
-                            ]
+                            "users": next_hop_users
                         }
                     ]
                 },
-                "streamSettings": {
-                    "network": "tcp",
-                    "security": "reality",
-                    "realitySettings": {
-                        "fingerprint": next_hop_config["fingerprint"],
-                        "serverName": next_hop_config["sni"],
-                        "publicKey": next_hop_config["public_key"],
-                        "shortId": "",
-                        "spiderX": ""
-                    }
-                }
+                "streamSettings": next_hop_stream_settings
             },
             {
                 "tag": "blocked",
@@ -336,17 +413,31 @@ def main():
     config_path = "/etc/xray/config.json"
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(xray_config, f, indent=2)
-    print(f"Generated Xray config at {config_path}")
+    print(f"Generated Xray config at {config_path} (mode: {mode})")
 
     # Generate VLESS client URIs
     uris = []
+    encoded_name = urllib.parse.quote(name)
+    encoded_path = urllib.parse.quote(xhttp_path, safe="")
     for u in uuids:
         for sni in snis:
-            encoded_name = urllib.parse.quote(name)
-            uri = f"vless://{u}@{host}:{port}?type=tcp&security=reality&pbk={public_key}&fp={fingerprint}&sni={sni}&spx=%2F&flow=xtls-rprx-vision#{encoded_name}"
+            if mode == "vless-reality-tcp":
+                uri = f"vless://{u}@{host}:{port}?type=tcp&security=reality&pbk={public_key}&fp={fingerprint}&sni={sni}&spx=%2F&flow=xtls-rprx-vision#{encoded_name}"
+            else:  # vless-reality-xhttp
+                uri = (
+                    f"vless://{u}@{host}:{port}?"
+                    f"type=xhttp&"
+                    f"security=reality&"
+                    f"pbk={public_key}&"
+                    f"fp={fingerprint}&"
+                    f"sni={sni}&"
+                    f"path={encoded_path}&"
+                    f"mode={xhttp_mode}&"
+                    f"spx=%2F#{encoded_name}"
+                )
             uris.append(uri)
 
-    print(f"Generated {len(uris)} client VLESS URIs for provider '{name}'")
+    print(f"Generated {len(uris)} client VLESS URIs for provider '{name}' (mode: {mode})")
 
     # Upload URIs to Supabase
     supabase_url = os.environ.get("SUPABASE_URL")
