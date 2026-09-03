@@ -456,24 +456,27 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] in ("traffic-reporter", "traffic_reporter"):
         os.execvp("python3", ["python3", "/usr/local/bin/traffic_reporter.py"])
 
-    mode = os.environ.get("MODE", "vless-reality-xhttp").strip().lower()
+    mode_str = os.environ.get("MODE")
+    if not mode_str:
+        print("ERROR: MODE environment variable is required (vless-reality-tcp or vless-reality-xhttp).", file=sys.stderr)
+        sys.exit(1)
+    mode = mode_str.strip().lower()
     if mode not in ("vless-reality-tcp", "vless-reality-xhttp"):
         print(f"ERROR: Invalid MODE '{mode}'. Must be 'vless-reality-tcp' or 'vless-reality-xhttp'.", file=sys.stderr)
         sys.exit(1)
 
-    server_uuid = os.environ.get("SERVER_UUID")
-    name = os.environ.get("SERVER_NAME") or server_uuid
     host = os.environ.get("HOST")
-
     if not host:
         print("ERROR: HOST environment variable is required.", file=sys.stderr)
         sys.exit(1)
 
-    if not server_uuid:
-        print("ERROR: SERVER_UUID environment variable is required.", file=sys.stderr)
-        sys.exit(1)
+    name = os.environ.get("SERVER_NAME") or os.environ.get("COMPOSE_PROJECT_NAME") or host
+    supabase_server_uuid = os.environ.get("SUPABASE_SERVER_UUID") or os.environ.get("SERVER_UUID")
 
-    port_str = os.environ.get("PORT", "443")
+    port_str = os.environ.get("PORT")
+    if not port_str:
+        print("ERROR: PORT environment variable is required.", file=sys.stderr)
+        sys.exit(1)
     try:
         port = int(port_str)
     except ValueError:
@@ -490,13 +493,25 @@ def main():
     if not fallback_proxy_target:
         fallback_proxy_target = f"{snis[0]}:443"
 
-    fingerprint = os.environ.get("FINGERPRINT", "chrome")
+    fingerprint = os.environ.get("FINGERPRINT")
+    if not fingerprint:
+        print("ERROR: FINGERPRINT environment variable is required (e.g. chrome).", file=sys.stderr)
+        sys.exit(1)
+
     xhttp_path = os.environ.get("XHTTP_PATH", "/")
     if not xhttp_path.startswith("/"):
         xhttp_path = "/" + xhttp_path
     xhttp_mode = os.environ.get("XHTTP_MODE", "auto")
 
-    number_of_users = int(os.environ.get("NUMBER_OF_USERS", "256"))
+    number_of_users_str = os.environ.get("NUMBER_OF_USERS")
+    if not number_of_users_str:
+        print("ERROR: NUMBER_OF_USERS environment variable is required.", file=sys.stderr)
+        sys.exit(1)
+    try:
+        number_of_users = int(number_of_users_str)
+    except ValueError:
+        print(f"ERROR: Invalid NUMBER_OF_USERS '{number_of_users_str}'", file=sys.stderr)
+        sys.exit(1)
     seed = os.environ.get("SEED")
 
     whitelist_domains_str = os.environ.get("WHITELIST_DOMAINS", "")
@@ -593,11 +608,14 @@ def main():
     supabase_secret_key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
     if supabase_url and supabase_secret_key:
+        if not supabase_server_uuid:
+            print("ERROR: SUPABASE_SERVER_UUID environment variable is required when SUPABASE_URL is set.", file=sys.stderr)
+            sys.exit(1)
         print(f"Submitting {len(uris)} URIs to Supabase function at {supabase_url}...")
         url = f"{supabase_url.rstrip('/')}/functions/v1/submit_server"
         payload_data = {
-            "id": server_uuid,
-            "server_id": server_uuid,
+            "id": supabase_server_uuid,
+            "server_id": supabase_server_uuid,
             "name": name,
             "server_name": name,
             "uris": uris

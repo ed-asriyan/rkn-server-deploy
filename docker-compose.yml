@@ -4,25 +4,25 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - MODE=${MODE:-vless-reality-xhttp}
+      - MODE=${MODE:?MODE is required}
       - SERVER_NAME=${SERVER_NAME:-${COMPOSE_PROJECT_NAME}}
-      - SERVER_UUID=${SERVER_UUID}
       - HOST=${HOST:?HOST is required}
-      - PORT=${PORT:-443}
+      - PORT=${PORT:?PORT is required}
       - SNIS=${SNIS:?SNIS is required}
       - FALLBACK_PROXY_TARGET=${FALLBACK_PROXY_TARGET}
-      - FINGERPRINT=${FINGERPRINT:-chrome}
-      - XHTTP_PATH=${XHTTP_PATH:-/}
-      - XHTTP_MODE=${XHTTP_MODE:-auto}
-      - NUMBER_OF_USERS=${NUMBER_OF_USERS:-256}
+      - FINGERPRINT=${FINGERPRINT:?FINGERPRINT is required}
+      - XHTTP_PATH=${XHTTP_PATH}
+      - XHTTP_MODE=${XHTTP_MODE}
+      - NUMBER_OF_USERS=${NUMBER_OF_USERS:?NUMBER_OF_USERS is required}
       - SEED=${SEED}
       - WHITELIST_DOMAINS=${WHITELIST_DOMAINS}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SECRET_KEY=${SUPABASE_SECRET_KEY}
+      - SUPABASE_SERVER_UUID=${SUPABASE_SERVER_UUID}
       - NEXT_HOP=${NEXT_HOP}
-      - NEXT_HOP_UPDATE_INTERVAL=${NEXT_HOP_UPDATE_INTERVAL:-3600}
-      - NEXT_HOP_PROBE_URL=${NEXT_HOP_PROBE_URL:-http://cp.cloudflare.com/generate_204}
-      - NEXT_HOP_PROBE_INTERVAL=${NEXT_HOP_PROBE_INTERVAL:-1m}
+      - NEXT_HOP_UPDATE_INTERVAL=${NEXT_HOP_UPDATE_INTERVAL}
+      - NEXT_HOP_PROBE_URL=${NEXT_HOP_PROBE_URL}
+      - NEXT_HOP_PROBE_INTERVAL=${NEXT_HOP_PROBE_INTERVAL}
 
   traffic-reporter:
     image: ghcr.io/ed-asriyan/rkn-server-deploy:latest
@@ -32,9 +32,9 @@ services:
     volumes:
       - traffic_data:/data
     environment:
-      - SERVER_UUID=${SERVER_UUID}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SECRET_KEY=${SUPABASE_SECRET_KEY}
+      - SUPABASE_SERVER_UUID=${SUPABASE_SERVER_UUID:-${SERVER_UUID}}
 
 volumes:
   traffic_data:

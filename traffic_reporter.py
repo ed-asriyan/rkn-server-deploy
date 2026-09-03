@@ -2,6 +2,7 @@
 import datetime
 import json
 import os
+import signal
 import sys
 import time
 import urllib.error
@@ -61,7 +62,7 @@ def send_unsent_records(provider_id: str, supabase_url: str, supabase_key: str):
         return
 
     if not provider_id:
-        print("WARNING: SERVER_UUID is not set. Cannot submit traffic stats.", file=sys.stderr)
+        print("WARNING: SUPABASE_SERVER_UUID is not set. Cannot submit traffic stats.", file=sys.stderr)
         return
 
     payload_data = {
@@ -113,15 +114,24 @@ def add_hourly_record(state: dict, period_start: str, period_end: str, rx_bytes:
     print(f"Recorded traffic for [{period_start} - {period_end}]: RX={rx_bytes} B, TX={tx_bytes} B, Total={total_bytes} B")
 
 
+def sig_handler(signum, frame):
+    sys.exit(0)
+
+
 def main():
-    print("Starting Traffic Reporter daemon...")
-    provider_id = os.environ.get("SERVER_UUID")
+    signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGINT, sig_handler)
+
+    provider_id = os.environ.get("SUPABASE_SERVER_UUID") or os.environ.get("SERVER_UUID")
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_SECRET_KEY")
 
     if not provider_id or not supabase_url or not supabase_key:
-        print("WARNING: SERVER_UUID, SUPABASE_URL, or SUPABASE_SECRET_KEY environment variable is not set.", file=sys.stderr)
-        return
+        print("Traffic Reporter: Supabase credentials not provided (SUPABASE_SERVER_UUID, SUPABASE_URL, or SUPABASE_SECRET_KEY). Traffic reporting is disabled (sleeping).")
+        while True:
+            time.sleep(3600)
+
+    print("Starting Traffic Reporter daemon...")
 
     # Try sending any pending backlog on startup
     send_unsent_records(provider_id, supabase_url, supabase_key)
