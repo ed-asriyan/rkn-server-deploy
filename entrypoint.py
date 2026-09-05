@@ -417,8 +417,8 @@ def generate_xray_config(
     }
 
     if has_next_hop:
-        probe_url = os.environ.get("NEXT_HOP_PROBE_URL") or os.environ.get("PROBE_URL", "http://cp.cloudflare.com/generate_204")
-        probe_interval = os.environ.get("NEXT_HOP_PROBE_INTERVAL") or os.environ.get("PROBE_INTERVAL", "1m")
+        probe_url = (os.environ.get("NEXT_HOP_PROBE_URL") or "http://cp.cloudflare.com/generate_204").strip()
+        probe_interval = (os.environ.get("NEXT_HOP_PROBE_INTERVAL") or "1m").strip()
         xray_config["observatory"] = {
             "subjectSelector": ["next-hop-"],
             "probeURL": probe_url,
@@ -498,10 +498,10 @@ def main():
         print("ERROR: FINGERPRINT environment variable is required (e.g. chrome).", file=sys.stderr)
         sys.exit(1)
 
-    xhttp_path = os.environ.get("XHTTP_PATH", "/")
+    xhttp_path = (os.environ.get("XHTTP_PATH") or "/").strip()
     if not xhttp_path.startswith("/"):
         xhttp_path = "/" + xhttp_path
-    xhttp_mode = os.environ.get("XHTTP_MODE", "auto")
+    xhttp_mode = (os.environ.get("XHTTP_MODE") or "auto").strip().lower()
 
     number_of_users_str = os.environ.get("NUMBER_OF_USERS")
     if not number_of_users_str:
@@ -691,7 +691,7 @@ def main():
     print(f"Generated Xray config at {config_path} (mode: {mode})")
 
     # Start Xray process
-    xray_binary = os.environ.get("XRAY_BINARY", "xray")
+    xray_binary = (os.environ.get("XRAY_BINARY") or "xray").strip()
     print(f"Starting Xray ({xray_binary} run -c {config_path})...")
     sys.stdout.flush()
     sys.stderr.flush()
@@ -703,7 +703,7 @@ def main():
     is_sub_url = sub_param.startswith(("http://", "https://"))
 
     try:
-        update_interval = int(os.environ.get("NEXT_HOP_UPDATE_INTERVAL", "3600"))
+        update_interval = int((os.environ.get("NEXT_HOP_UPDATE_INTERVAL") or "3600").strip())
     except ValueError:
         update_interval = 3600
 

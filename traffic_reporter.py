@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.request
 
-STATE_FILE = os.environ.get("TRAFFIC_STATE_FILE", "/data/unsent.json")
+STATE_FILE = (os.environ.get("TRAFFIC_STATE_FILE") or "/data/unsent.json").strip()
 
 
 def load_state() -> dict:
@@ -122,9 +122,9 @@ def main():
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
 
-    provider_id = os.environ.get("SUPABASE_SERVER_UUID") or os.environ.get("SERVER_UUID")
-    supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_SECRET_KEY")
+    provider_id = (os.environ.get("SUPABASE_SERVER_UUID") or "").strip()
+    supabase_url = (os.environ.get("SUPABASE_URL") or "").strip()
+    supabase_key = (os.environ.get("SUPABASE_SECRET_KEY") or "").strip()
 
     if not provider_id or not supabase_url or not supabase_key:
         print("Traffic Reporter: Supabase credentials not provided (SUPABASE_SERVER_UUID, SUPABASE_URL, or SUPABASE_SECRET_KEY). Traffic reporting is disabled (sleeping).")
