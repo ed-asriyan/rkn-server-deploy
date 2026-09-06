@@ -501,7 +501,7 @@ def main():
     xhttp_path = (os.environ.get("XHTTP_PATH") or "/").strip()
     if not xhttp_path.startswith("/"):
         xhttp_path = "/" + xhttp_path
-    xhttp_mode = (os.environ.get("XHTTP_MODE") or "auto").strip().lower()
+    xhttp_mode = (os.environ.get("XHTTP_MODE") or "stream-one").strip().lower()
 
     number_of_users_str = os.environ.get("NUMBER_OF_USERS")
     if not number_of_users_str:
