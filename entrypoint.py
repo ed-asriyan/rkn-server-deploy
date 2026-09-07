@@ -1,754 +1,83 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import base64
-import hashlib
-import json
 import os
-import re
-import signal
-import subprocess
 import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
-import uuid
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import x25519
 
-xray_proc = None
+from rkn_deploy import discover_best_sni, launch_server, probe_domain, run_traffic_reporter
 
 
-def b64u(b: bytes) -> str:
-    return base64.urlsafe_b64encode(b).decode().rstrip('=')
+def print_probe_result(domain: str):
+    print(f"Probing SNI candidate: {domain} ...\n")
+    res = probe_domain(domain)
+    print("==================================================")
+    print(f"Target Domain:             {res.domain}")
+    print(f"IPv4 Address:              {res.ipv4_address or 'None'}")
+    print(f"IPv6 Address:              {res.ipv6_address or 'None'}")
+    print(f"IPv6 Reachability:         {'BROKEN/TIMEOUT' if res.ipv6_broken else ('OK' if res.ipv6_address else 'N/A')}")
+    print(f"TLS 1.3 Supported:         {res.tls_13_supported}")
+    print(f"HTTP/2 (h2) Supported:     {res.h2_supported}")
+    print(f"Negotiated ALPN:           {res.alpn_protocols}")
+    print(f"CDN Detected:              {res.is_cdn} ({res.cdn_provider or 'None'})")
+    print(f"Round-Trip Time (RTT):     {res.rtt_ms} ms")
+    print(f"Certificate CN:            {res.cert_cn}")
+    print(f"Certificate SANs:          {res.cert_sans[:5]}{'...' if len(res.cert_sans) > 5 else ''}")
+    print(f"Certificate Issuer:        {res.cert_issuer}")
+    print(f"Quality Score (0-100):     {res.score}")
+    print(f"Recommended Fallback:      {res.recommended_fallback_target}")
+    print(f"Verdict:                   {res.status_summary}")
+    print("==================================================")
 
 
-def generate_keypair(seed: str | None, seed_host: str):
-    if seed:
-        raw_priv_seed = hashlib.sha256(f"{seed}:{seed_host}".encode()).digest()
-        priv = x25519.X25519PrivateKey.from_private_bytes(raw_priv_seed)
-    else:
-        priv = x25519.X25519PrivateKey.generate()
-
-    pub = priv.public_key()
-    raw_priv = priv.private_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PrivateFormat.Raw,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-    raw_pub = pub.public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw
-    )
-    return b64u(raw_priv), b64u(raw_pub)
+def print_discovery_result(host_ip: str):
+    selection = discover_best_sni(host_ip)
+    print("\n[Auto-Discovery Result]")
+    print(f"Chosen SNI:        {selection.server_name}")
+    print(f"Fallback Target:   {selection.fallback_target}")
+    print(f"Source:            {selection.source}")
 
 
-def generate_uuids(count: int, seed: str | None, seed_host: str) -> list[str]:
-    if seed:
-        ns = uuid.UUID(int=0)
-        return [str(uuid.uuid5(ns, f"{seed}:{seed_host}:{i}")) for i in range(count)]
-    else:
-        return [str(uuid.uuid4()) for _ in range(count)]
-
-
-def parse_vless_uri(uri: str) -> dict | None:
-    uri = uri.strip()
-    if not uri.startswith("vless://"):
-        return None
-    try:
-        parsed = urllib.parse.urlparse(uri)
-        user_id = parsed.username
-        host = parsed.hostname
-        port = parsed.port or 443
-        qs = urllib.parse.parse_qs(parsed.query)
-
-        def q_get(k, default=""):
-            return qs.get(k, [default])[0]
-
-        net_type = q_get("type", "tcp").lower()
-        security = q_get("security", "none").lower()
-        pbk = q_get("pbk") or q_get("publicKey")
-        fp = q_get("fp") or q_get("fingerprint") or "chrome"
-        sni = q_get("sni") or q_get("serverName") or host
-        flow = q_get("flow")
-        path = q_get("path", "/")
-        mode = q_get("mode", "auto")
-        spx = q_get("spx", "/")
-        name = urllib.parse.unquote(parsed.fragment) if parsed.fragment else f"{host}:{port}"
-
-        return {
-            "user_id": user_id,
-            "host": host,
-            "port": port,
-            "net_type": net_type,
-            "security": security,
-            "pbk": pbk,
-            "fp": fp,
-            "sni": sni,
-            "flow": flow,
-            "path": path,
-            "mode": mode,
-            "spx": spx,
-            "name": name
-        }
-    except Exception as e:
-        print(f"WARNING: Failed to parse VLESS URI '{uri}': {e}", file=sys.stderr)
-        return None
-
-
-def parse_singbox_outbounds(data: dict) -> list[dict]:
-    nodes = []
-    for ob in data.get("outbounds", []):
-        if ob.get("type") != "vless":
-            continue
-        host = ob.get("server")
-        if not host:
-            continue
-        port = int(ob.get("server_port", 443))
-        uuid_str = ob.get("uuid")
-        flow = ob.get("flow", "")
-        tls_cfg = ob.get("tls", {}) if isinstance(ob.get("tls"), dict) else {}
-        reality_cfg = tls_cfg.get("reality", {}) if isinstance(tls_cfg.get("reality"), dict) else {}
-        is_reality = reality_cfg.get("enabled", False) or bool(reality_cfg.get("public_key"))
-        pbk = reality_cfg.get("public_key", "")
-        sni = tls_cfg.get("server_name") or host
-        utls_cfg = tls_cfg.get("utls", {}) if isinstance(tls_cfg.get("utls"), dict) else {}
-        fp = utls_cfg.get("fingerprint", "chrome") if isinstance(utls_cfg, dict) else "chrome"
-
-        tr_cfg = ob.get("transport", {}) if isinstance(ob.get("transport"), dict) else {}
-        net_type = tr_cfg.get("type", "tcp").lower()
-        path = tr_cfg.get("path", "/")
-        mode = tr_cfg.get("mode", "auto")
-
-        nodes.append({
-            "user_id": uuid_str,
-            "host": host,
-            "port": port,
-            "net_type": net_type,
-            "security": "reality" if is_reality else ("tls" if tls_cfg.get("enabled") else "none"),
-            "pbk": pbk,
-            "fp": fp,
-            "sni": sni,
-            "flow": flow,
-            "path": path,
-            "mode": mode,
-            "spx": "/",
-            "name": ob.get("tag", f"{host}:{port}")
-        })
-    return nodes
-
-
-def vless_dict_to_outbound(v: dict, tag: str) -> dict:
-    users = [
-        {
-            "id": v["user_id"],
-            "email": v["user_id"],
-            "encryption": "none"
-        }
-    ]
-    if v.get("flow"):
-        users[0]["flow"] = v["flow"]
-
-    stream_settings = {"network": v["net_type"]}
-
-    if v["security"] == "reality":
-        stream_settings["security"] = "reality"
-        stream_settings["realitySettings"] = {
-            "fingerprint": v["fp"],
-            "serverName": v["sni"],
-            "publicKey": v["pbk"],
-            "shortId": "",
-            "spiderX": v.get("spx") or "/"
-        }
-    elif v["security"] == "tls":
-        stream_settings["security"] = "tls"
-        stream_settings["tlsSettings"] = {
-            "fingerprint": v["fp"],
-            "serverName": v["sni"],
-            "allowInsecure": False
-        }
-
-    if v["net_type"] == "xhttp":
-        stream_settings["xhttpSettings"] = {
-            "path": v["path"] if v["path"].startswith("/") else "/" + v["path"],
-            "mode": v.get("mode") or "auto"
-        }
-    elif v["net_type"] == "ws":
-        stream_settings["wsSettings"] = {
-            "path": v["path"] if v["path"].startswith("/") else "/" + v["path"],
-            "headers": {
-                "Host": v["sni"]
-            }
-        }
-    elif v["net_type"] == "grpc":
-        stream_settings["grpcSettings"] = {
-            "serviceName": v["path"].lstrip("/"),
-            "multiMode": True
-        }
-
-    return {
-        "tag": tag,
-        "protocol": "vless",
-        "settings": {
-            "vnext": [
-                {
-                    "address": v["host"],
-                    "port": v["port"],
-                    "users": users
-                }
-            ]
-        },
-        "streamSettings": stream_settings
-    }
-
-
-def fetch_subscription_nodes(url_or_content: str, self_host: str, self_port: int) -> list[dict]:
-    url_or_content = url_or_content.strip()
-    if not url_or_content:
-        return []
-
-    if url_or_content.startswith(("http://", "https://")):
-        headers = {"User-Agent": "v2rayNG/1.9.0 (Xray-Relay-Updater)"}
-        supabase_key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-        if supabase_key and "supabase.co" in url_or_content:
-            headers["Authorization"] = f"Bearer {supabase_key}"
-            headers["apikey"] = supabase_key
-
-        req = urllib.request.Request(url_or_content, headers=headers)
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                content = resp.read().decode("utf-8", errors="replace")
-        except Exception as e:
-            print(f"WARNING: Failed to fetch subscription from {url_or_content}: {e}", file=sys.stderr)
-            return []
-    else:
-        content = url_or_content
-
-    content = content.strip()
-
-    # 1. Try decoding base64 format
-    try:
-        decoded = base64.b64decode(content).decode("utf-8", errors="replace")
-        if "vless://" in decoded or "outbounds" in decoded:
-            content = decoded.strip()
-    except Exception:
-        pass
-
-    # 2. Try JSON (sing-box config or array of URIs)
-    try:
-        data = json.loads(content)
-        if isinstance(data, dict) and "outbounds" in data:
-            nodes = parse_singbox_outbounds(data)
-            filtered = []
-            for n in nodes:
-                if n["host"] == self_host and n["port"] == self_port:
-                    print(f"Skipping self-referencing next-hop node: {n['name']} ({n['host']}:{n['port']})")
-                    continue
-                filtered.append(n)
-            if filtered:
-                return filtered
-        elif isinstance(data, list):
-            nodes = []
-            for item in data:
-                if isinstance(item, str) and item.startswith("vless://"):
-                    p = parse_vless_uri(item)
-                    if p:
-                        nodes.append(p)
-            filtered = []
-            for n in nodes:
-                if n["host"] == self_host and n["port"] == self_port:
-                    print(f"Skipping self-referencing next-hop node: {n['name']} ({n['host']}:{n['port']})")
-                    continue
-                filtered.append(n)
-            if filtered:
-                return filtered
-    except Exception:
-        pass
-
-    # 3. Extract raw vless:// URIs (separated by newlines, commas, or spaces)
-    raw_uris = re.findall(r"vless://[^\s,]+", content)
-    nodes = []
-    for u in raw_uris:
-        p = parse_vless_uri(u)
-        if not p:
-            continue
-        if p["host"] == self_host and p["port"] == self_port:
-            print(f"Skipping self-referencing next-hop node: {p['name']} ({p['host']}:{p['port']})")
-            continue
-        nodes.append(p)
-
-    return nodes
-
-
-def resolve_next_hop_outbounds(self_host: str, self_port: int, fatal_on_empty: bool = True) -> tuple[list[dict], list[dict]]:
-    sub_param = (os.environ.get("NEXT_HOP") or "").strip()
-    if sub_param:
-        nodes = fetch_subscription_nodes(sub_param, self_host, self_port)
-        if nodes:
-            outbounds = []
-            for i, n in enumerate(nodes):
-                tag = f"next-hop-{i+1}"
-                outbounds.append(vless_dict_to_outbound(n, tag))
-            return outbounds, nodes
-        else:
-            msg = f"FATAL ERROR: NEXT_HOP was specified ('{sub_param}'), but no valid next-hop nodes could be extracted (failed to download, invalid format, or all nodes matched self host:port)!"
-            print(msg, file=sys.stderr)
-            if fatal_on_empty:
-                sys.exit(1)
-
-    return [], []
-
-
-def generate_xray_config(
-    port: int,
-    inbound_clients: list[dict],
-    inbound_stream_settings: dict,
-    outbounds: list[dict],
-    has_next_hop: bool,
-    whitelist_domains: list[str]
-) -> dict:
-    inbounds = [
-        {
-            "listen": None,
-            "port": port,
-            "protocol": "vless",
-            "settings": {
-                "clients": inbound_clients,
-                "decryption": "none",
-                "fallbacks": []
-            },
-            "streamSettings": inbound_stream_settings,
-            "tag": "inbound-vless",
-            "sniffing": {
-                "enabled": True,
-                **({"routeOnly": True} if has_next_hop else {}),
-                "destOverride": ["http", "tls", "quic"]
-            },
-            "allocate": {
-                "strategy": "always",
-                "refresh": 5,
-                "concurrency": 3
-            }
-        }
-    ]
-
-    rules = []
-    if whitelist_domains:
-        rules.append({
-            "type": "field",
-            "inboundTag": ["inbound-vless"],
-            **({"balancerTag": "next-hop-balancer"} if has_next_hop else {"balancerTag": "smart-balancer"}),
-            "domain": [f"domain:{d}" for d in whitelist_domains]
-        })
-
-    rules.extend([
-        {
-            "type": "field",
-            "inboundTag": ["inbound-vless"],
-            "outboundTag": "blocked",
-            "ip": ["geoip:private"]
-        },
-        {
-            "type": "field",
-            "inboundTag": ["inbound-vless"],
-            "outboundTag": "blocked",
-            "domain": ["geosite:category-ru"]
-        },
-        {
-            "type": "field",
-            "inboundTag": ["inbound-vless"],
-            "outboundTag": "blocked",
-            "ip": ["geoip:ru"]
-        }
-    ])
-
-    if has_next_hop:
-        rules.extend([
-            {
-                "type": "field",
-                "inboundTag": ["inbound-vless"],
-                "ip": ["::/0"],
-                "balancerTag": "next-hop-balancer"
-            },
-            {
-                "type": "field",
-                "inboundTag": ["inbound-vless"],
-                "balancerTag": "next-hop-balancer"
-            }
-        ])
-    else:
-        rules.append({
-            "type": "field",
-            "network": "tcp,udp",
-            "balancerTag": "smart-balancer"
-        })
-
-    routing = {
-        "domainStrategy": "IPIfNonMatch",
-        "balancers": [
-            {
-                "tag": "next-hop-balancer",
-                "selector": ["next-hop-"],
-                "strategy": {
-                    "type": "leastPing"
-                }
-            } if has_next_hop else {
-                "tag": "smart-balancer",
-                "selector": ["direct-ipv4", "direct-ipv6"],
-                "strategy": {
-                    "type": "leastPing"
-                }
-            }
-        ],
-        "rules": rules
-    }
-
-    xray_config = {
-        "inbounds": inbounds,
-        "outbounds": outbounds,
-        "routing": routing,
-        "log": {
-            "access": "none",
-            "dnsLog": False,
-            "loglevel": "warning",
-            "maskAddress": ""
-        }
-    }
-
-    if has_next_hop:
-        probe_url = (os.environ.get("NEXT_HOP_PROBE_URL") or "http://cp.cloudflare.com/generate_204").strip()
-        probe_interval = (os.environ.get("NEXT_HOP_PROBE_INTERVAL") or "1m").strip()
-        xray_config["observatory"] = {
-            "subjectSelector": ["next-hop-"],
-            "probeURL": probe_url,
-            "probeInterval": probe_interval,
-            "enableConcurrency": True
-        }
-    else:
-        xray_config["observatory"] = {
-            "subjectSelector": ["direct-ipv4", "direct-ipv6"],
-            "probeURL": "http://cp.cloudflare.com/generate_204",
-            "probeInterval": "24h",
-            "enableConcurrency": True
-        }
-
-    return xray_config
-
-
-def sig_handler(signum, frame):
-    global xray_proc
-    if xray_proc and xray_proc.poll() is None:
-        try:
-            xray_proc.terminate()
-            xray_proc.wait(timeout=5)
-        except Exception:
-            pass
-    sys.exit(0)
+def print_usage():
+    print("Usage:")
+    print("  entrypoint.py launch              # Run server daemon")
+    print("  entrypoint.py traffic-reporter    # Run traffic reporter daemon")
+    print("  entrypoint.py probe <domain>      # Run TLS & CDN diagnostic probe on domain")
+    print("  entrypoint.py discover-sni [host] # Scan subnet for optimal SNI candidates")
 
 
 def main():
-    global xray_proc
+    cmd = sys.argv[1].lower() if len(sys.argv) > 1 else "launch"
 
-    signal.signal(signal.SIGTERM, sig_handler)
-    signal.signal(signal.SIGINT, sig_handler)
+    if cmd == "launch":
+        launch_server()
+        return
 
-    if len(sys.argv) > 1 and sys.argv[1] in ("traffic-reporter", "traffic_reporter"):
-        os.execvp("python3", ["python3", "/usr/local/bin/traffic_reporter.py"])
+    if cmd in ("traffic-reporter", "traffic_reporter"):
+        run_traffic_reporter()
+        return
 
-    mode_str = os.environ.get("MODE")
-    if not mode_str:
-        print("ERROR: MODE environment variable is required (vless-reality-tcp or vless-reality-xhttp).", file=sys.stderr)
-        sys.exit(1)
-    mode = mode_str.strip().lower()
-    if mode not in ("vless-reality-tcp", "vless-reality-xhttp"):
-        print(f"ERROR: Invalid MODE '{mode}'. Must be 'vless-reality-tcp' or 'vless-reality-xhttp'.", file=sys.stderr)
-        sys.exit(1)
-
-    host = os.environ.get("HOST")
-    if not host:
-        print("ERROR: HOST environment variable is required.", file=sys.stderr)
-        sys.exit(1)
-
-    name = os.environ.get("SERVER_NAME") or os.environ.get("COMPOSE_PROJECT_NAME") or host
-    supabase_server_uuid = os.environ.get("SUPABASE_SERVER_UUID") or os.environ.get("SERVER_UUID")
-
-    port_str = os.environ.get("PORT")
-    if not port_str:
-        print("ERROR: PORT environment variable is required.", file=sys.stderr)
-        sys.exit(1)
-    try:
-        port = int(port_str)
-    except ValueError:
-        print(f"ERROR: Invalid PORT '{port_str}'", file=sys.stderr)
-        sys.exit(1)
-
-    snis_str = os.environ.get("SNIS", "")
-    snis = [s.strip() for s in snis_str.split(",") if s.strip()]
-    if not snis:
-        print("ERROR: SNIS environment variable is required (comma-separated).", file=sys.stderr)
-        sys.exit(1)
-
-    fallback_proxy_target = os.environ.get("FALLBACK_PROXY_TARGET")
-    if not fallback_proxy_target:
-        fallback_proxy_target = f"{snis[0]}:443"
-
-    fingerprint = os.environ.get("FINGERPRINT")
-    if not fingerprint:
-        print("ERROR: FINGERPRINT environment variable is required (e.g. chrome).", file=sys.stderr)
-        sys.exit(1)
-
-    xhttp_path = (os.environ.get("XHTTP_PATH") or "/").strip()
-    if not xhttp_path.startswith("/"):
-        xhttp_path = "/" + xhttp_path
-    xhttp_mode = (os.environ.get("XHTTP_MODE") or "stream-one").strip().lower()
-
-    number_of_users_str = os.environ.get("NUMBER_OF_USERS")
-    if not number_of_users_str:
-        print("ERROR: NUMBER_OF_USERS environment variable is required.", file=sys.stderr)
-        sys.exit(1)
-    try:
-        number_of_users = int(number_of_users_str)
-    except ValueError:
-        print(f"ERROR: Invalid NUMBER_OF_USERS '{number_of_users_str}'", file=sys.stderr)
-        sys.exit(1)
-    seed = os.environ.get("SEED")
-
-    whitelist_domains_str = os.environ.get("WHITELIST_DOMAINS", "")
-    whitelist_domains = [d.strip() for d in whitelist_domains_str.split(",") if d.strip()]
-
-    # Generate keypair and UUIDs for this server
-    private_key, public_key = generate_keypair(seed, host)
-    uuids = generate_uuids(number_of_users, seed, host)
-
-    # Inbound setup
-    if mode == "vless-reality-tcp":
-        inbound_clients = [
-            {
-                "email": u,
-                "flow": "xtls-rprx-vision",
-                "id": u
-            }
-            for u in uuids
-        ]
-        inbound_stream_settings = {
-            "network": "tcp",
-            "realitySettings": {
-                "dest": fallback_proxy_target,
-                "maxTimediff": 0,
-                "privateKey": private_key,
-                "serverNames": snis,
-                "shortIds": [""],
-                "show": False,
-                "xver": 0
-            },
-            "security": "reality",
-            "tcpSettings": {
-                "acceptProxyProtocol": False,
-                "header": {
-                    "type": "none"
-                }
-            }
-        }
-    else:  # vless-reality-xhttp
-        inbound_clients = [
-            {
-                "email": u,
-                "id": u
-            }
-            for u in uuids
-        ]
-        inbound_stream_settings = {
-            "network": "xhttp",
-            "xhttpSettings": {
-                "path": xhttp_path,
-                "mode": xhttp_mode
-            },
-            "realitySettings": {
-                "dest": fallback_proxy_target,
-                "maxTimediff": 0,
-                "privateKey": private_key,
-                "serverNames": snis,
-                "shortIds": [""],
-                "show": False,
-                "xver": 0
-            },
-            "security": "reality"
-        }
-
-    # Generate VLESS client URIs
-    uris = []
-    encoded_name = urllib.parse.quote(name)
-    encoded_path = urllib.parse.quote(xhttp_path, safe="")
-    for u in uuids:
-        for sni in snis:
-            if mode == "vless-reality-tcp":
-                uri = f"vless://{u}@{host}:{port}?type=tcp&security=reality&pbk={public_key}&fp={fingerprint}&sni={sni}&spx=%2F&flow=xtls-rprx-vision#{encoded_name}"
-            else:  # vless-reality-xhttp
-                uri = (
-                    f"vless://{u}@{host}:{port}?"
-                    f"type=xhttp&"
-                    f"security=reality&"
-                    f"pbk={public_key}&"
-                    f"fp={fingerprint}&"
-                    f"sni={sni}&"
-                    f"path={encoded_path}&"
-                    f"mode={xhttp_mode}&"
-                    f"spx=%2F#{encoded_name}"
-                )
-            uris.append(uri)
-
-    print(f"Generated {len(uris)} client VLESS URIs for provider '{name}' (mode: {mode}):")
-    for uri in uris:
-        print(uri)
-    sys.stdout.flush()
-
-    # Upload URIs to Supabase
-    supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_secret_key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-
-    if supabase_url and supabase_secret_key:
-        if not supabase_server_uuid:
-            print("ERROR: SUPABASE_SERVER_UUID environment variable is required when SUPABASE_URL is set.", file=sys.stderr)
+    if cmd == "probe":
+        if len(sys.argv) < 3:
+            print("Usage: entrypoint.py probe <domain>", file=sys.stderr)
             sys.exit(1)
-        print(f"Submitting {len(uris)} URIs to Supabase function at {supabase_url}...")
-        url = f"{supabase_url.rstrip('/')}/functions/v1/submit_server"
-        payload_data = {
-            "id": supabase_server_uuid,
-            "server_id": supabase_server_uuid,
-            "name": name,
-            "server_name": name,
-            "uris": uris
-        }
-        payload = json.dumps(payload_data).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=payload,
-            headers={
-                "Authorization": f"Bearer {supabase_secret_key}",
-                "apikey": supabase_secret_key,
-                "Content-Type": "application/json"
-            },
-            method="POST"
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                resp_data = resp.read().decode("utf-8")
-                print(f"Supabase response ({resp.status}): {resp_data}")
-        except urllib.error.HTTPError as e:
-            err_body = e.read().decode("utf-8", errors="replace") if hasattr(e, "read") else ""
-            print(f"WARNING: Failed to submit URIs to Supabase: HTTP Error {e.code}: {e.reason}. Response body: {err_body}", file=sys.stderr)
-        except Exception as e:
-            print(f"WARNING: Failed to submit URIs to Supabase: {e}", file=sys.stderr)
-    else:
-        print("SUPABASE_URL or SUPABASE_SECRET_KEY not provided. Skipping Supabase upload.")
+        print_probe_result(sys.argv[2])
+        return
 
-    if os.environ.get("NEXT_HOP"):
-        print("Waiting 5 seconds for backend node redistribution before resolving NEXT_HOP...")
-        time.sleep(5)
+    if cmd in ("discover-sni", "discover_sni", "scan"):
+        host = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("HOST", "")
+        if not host:
+            print("Usage: entrypoint.py discover-sni <host_ip>", file=sys.stderr)
+            sys.exit(1)
+        print_discovery_result(host)
+        return
 
-    # Next-hop / Outbounds resolution
-    next_hop_outbounds, current_nodes = resolve_next_hop_outbounds(host, port)
-    has_next_hop = len(next_hop_outbounds) > 0
+    if cmd in ("--help", "-h", "help"):
+        print_usage()
+        return
 
-    if has_next_hop:
-        outbounds = list(next_hop_outbounds)
-        outbounds.append({"tag": "blocked", "protocol": "blackhole", "settings": {}})
-        print(f"Configured {len(next_hop_outbounds)} next-hop relay server(s) from NEXT_HOP with dynamic leastPing load balancing:")
-        for n in current_nodes:
-            print(f"  ➜ [{n['name']}] {n['host']}:{n['port']} ({n['net_type']})")
-    else:
-        outbounds = [
-            {
-                "tag": "direct-ipv4",
-                "protocol": "freedom",
-                "settings": {
-                    "domainStrategy": "UseIPv4"
-                }
-            },
-            {
-                "tag": "direct-ipv6",
-                "protocol": "freedom",
-                "settings": {
-                    "domainStrategy": "UseIPv6"
-                }
-            },
-            {
-                "tag": "blocked",
-                "protocol": "blackhole",
-                "settings": {}
-            }
-        ]
-
-    xray_config = generate_xray_config(
-        port, inbound_clients, inbound_stream_settings, outbounds, has_next_hop, whitelist_domains
-    )
-
-    os.makedirs("/etc/xray", exist_ok=True)
-    config_path = "/etc/xray/config.json"
-    with open(config_path, "w", encoding="utf-8") as f:
-        json.dump(xray_config, f, indent=2)
-    print(f"Generated Xray config at {config_path} (mode: {mode})")
-
-    # Start Xray process
-    xray_binary = (os.environ.get("XRAY_BINARY") or "xray").strip()
-    print(f"Starting Xray ({xray_binary} run -c {config_path})...")
-    sys.stdout.flush()
-    sys.stderr.flush()
-
-    xray_proc = subprocess.Popen([xray_binary, "run", "-c", config_path])
-
-    # Periodic subscription updater loop (if NEXT_HOP is an HTTP/HTTPS subscription URL)
-    sub_param = (os.environ.get("NEXT_HOP") or "").strip()
-    is_sub_url = sub_param.startswith(("http://", "https://"))
-
-    try:
-        update_interval = int((os.environ.get("NEXT_HOP_UPDATE_INTERVAL") or "3600").strip())
-    except ValueError:
-        update_interval = 3600
-
-    last_update_time = time.time()
-
-    while True:
-        try:
-            time.sleep(5)
-            # Check if Xray died
-            if xray_proc.poll() is not None:
-                print(f"ERROR: Xray process exited with code {xray_proc.returncode}.", file=sys.stderr)
-                sys.exit(xray_proc.returncode)
-
-            if is_sub_url and (time.time() - last_update_time >= update_interval):
-                last_update_time = time.time()
-                print(f"Polling next-hop subscription from {sub_param}...")
-                new_outbounds, new_nodes = resolve_next_hop_outbounds(host, port, fatal_on_empty=False)
-                if new_outbounds and new_nodes != current_nodes:
-                    print(f"Subscription updated! Found {len(new_outbounds)} nodes. Updating config and reloading Xray...")
-                    current_nodes = new_nodes
-                    new_out_list = list(new_outbounds)
-                    new_out_list.append({"tag": "blocked", "protocol": "blackhole", "settings": {}})
-                    new_cfg = generate_xray_config(
-                        port, inbound_clients, inbound_stream_settings, new_out_list, True, whitelist_domains
-                    )
-                    with open(config_path, "w", encoding="utf-8") as f:
-                        json.dump(new_cfg, f, indent=2)
-
-                    # Gracefully restart Xray
-                    xray_proc.terminate()
-                    try:
-                        xray_proc.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        xray_proc.kill()
-
-                    xray_proc = subprocess.Popen([xray_binary, "run", "-c", config_path])
-                    print("Xray successfully reloaded with updated next-hop nodes.")
-                elif not new_outbounds:
-                    print("WARNING: Background subscription poll returned 0 nodes. Keeping existing next-hop outbounds.", file=sys.stderr)
-        except KeyboardInterrupt:
-            break
-
-    if xray_proc and xray_proc.poll() is None:
-        xray_proc.terminate()
-        xray_proc.wait(timeout=5)
+    print(f"ERROR: Unknown command '{cmd}'.", file=sys.stderr)
+    print_usage()
+    sys.exit(1)
 
 
 if __name__ == "__main__":

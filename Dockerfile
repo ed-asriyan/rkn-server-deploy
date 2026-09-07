@@ -25,8 +25,8 @@ RUN set -eux; \
     rm -rf /tmp/xray.zip
 
 COPY entrypoint.py /usr/local/bin/entrypoint.py
-COPY traffic_reporter.py /usr/local/bin/traffic_reporter.py
-RUN chmod +x /usr/local/bin/entrypoint.py /usr/local/bin/traffic_reporter.py
+COPY rkn_deploy /usr/local/bin/rkn_deploy
+RUN chmod +x /usr/local/bin/entrypoint.py
 
 ENV XRAY_LOCATION_ASSET=/usr/local/share/xray
 
